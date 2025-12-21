@@ -6,50 +6,21 @@
   <title>Boxing Manager — Admin</title>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 960px;
-      margin: 24px auto;
-      padding: 0 16px;
-    }
-    .card {
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    .row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    button, input, textarea {
-      padding: 10px;
-      font-size: 14px;
-    }
-    textarea {
-      width: 100%;
-      min-height: 220px;
-    }
-    pre {
-      background: #f6f6f6;
-      padding: 12px;
-      border-radius: 8px;
-      overflow: auto;
-    }
-    .muted {
-      color: #666;
-      font-size: 13px;
-    }
+    body { font-family: Arial, sans-serif; max-width: 960px; margin: 24px auto; padding: 0 16px; }
+    h1, h2, h3 { margin-top: 0; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    input, button, textarea { padding: 10px; font-size: 14px; }
+    textarea { width: 100%; min-height: 220px; }
+    pre { background: #f6f6f6; padding: 12px; border-radius: 8px; overflow: auto; }
+    .muted { color: #666; font-size: 13px; }
+    .danger { background: #c62828; color: #fff; }
   </style>
 </head>
 
 <body>
   <h1>Admin panel</h1>
-  <div class="muted">
-    API: https://boxing-manager-admin-api.onrender.com
-  </div>
+  <div class="muted">API: https://boxing-manager-admin-api.onrender.com</div>
 
   <!-- LOGIN -->
   <div class="card">
@@ -81,11 +52,11 @@
       <button onclick="loadEconomy()">Load</button>
       <button onclick="saveEconomy()">Save</button>
     </div>
-    <textarea id="econJson"></textarea>
+    <textarea id="econJson" placeholder="JSON"></textarea>
     <pre id="econResult"></pre>
   </div>
 
-  <!-- USERS -->
+  <!-- USER -->
   <div class="card" id="usersCard" style="display:none;">
     <h2>User</h2>
     <div class="row">
@@ -96,7 +67,11 @@
 
     <h3>Actions</h3>
     <div class="row">
-      <input id="cashAmount" placeholder="Give cash" />
+      <input id="starsAmount" placeholder="Stars" />
+      <button onclick="giveStars()">Give stars</button>
+    </div>
+    <div class="row">
+      <input id="cashAmount" placeholder="Cash" />
       <button onclick="giveCash()">Give cash</button>
     </div>
     <div class="row">
@@ -104,37 +79,28 @@
       <button onclick="setVip()">Set VIP</button>
     </div>
     <div class="row">
-      <button onclick="banUser(true)">Ban</button>
+      <button class="danger" onclick="banUser(true)">Ban</button>
       <button onclick="banUser(false)">Unban</button>
     </div>
   </div>
 
   <script>
     const API = "https://boxing-manager-admin-api.onrender.com";
-
     let token = localStorage.getItem("admin_token");
 
     function show(id, yes) {
       document.getElementById(id).style.display = yes ? "" : "none";
     }
-
     function setText(id, text) {
       document.getElementById(id).textContent = text;
     }
-
     function authHeaders() {
-      return token
-        ? { "Authorization": "Bearer " + token }
-        : {};
+      return token ? { "Authorization": "Bearer " + token } : {};
     }
-
     async function api(path, options = {}) {
       const res = await fetch(API + path, {
         ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders()
-        }
+        headers: { "Content-Type": "application/json", ...authHeaders() }
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error");
@@ -156,7 +122,6 @@
 
         setText("loginStatus", "Залогінено");
         setText("adminInfo", "Admin: " + user.id);
-
         show("adminCard", true);
         show("economyCard", true);
         show("usersCard", true);
@@ -174,9 +139,8 @@
     async function loadEconomy() {
       try {
         const data = await api("/admin/economy");
-        document.getElementById("econVersion").value = data.version;
-        document.getElementById("econJson").value =
-          JSON.stringify(data.value_json, null, 2);
+        document.getElementById("econVersion").value = data.version || "";
+        document.getElementById("econJson").value = JSON.stringify(data.value_json || {}, null, 2);
         document.getElementById("econResult").textContent = "Loaded";
       } catch (e) {
         document.getElementById("econResult").textContent = e.message;
@@ -186,9 +150,7 @@
     async function saveEconomy() {
       try {
         const version = document.getElementById("econVersion").value;
-        const value_json = JSON.parse(
-          document.getElementById("econJson").value
-        );
+        const value_json = JSON.parse(document.getElementById("econJson").value || "{}");
         await api("/admin/economy", {
           method: "PUT",
           body: JSON.stringify({ version, value_json })
@@ -203,11 +165,20 @@
       try {
         const id = document.getElementById("userId").value;
         const data = await api("/admin/users/" + id);
-        document.getElementById("userResult").textContent =
-          JSON.stringify(data, null, 2);
+        document.getElementById("userResult").textContent = JSON.stringify(data, null, 2);
       } catch (e) {
         document.getElementById("userResult").textContent = e.message;
       }
+    }
+
+    async function giveStars() {
+      const id = document.getElementById("userId").value;
+      const amount = Number(document.getElementById("starsAmount").value);
+      await api(`/admin/users/${id}/actions`, {
+        method: "POST",
+        body: JSON.stringify({ action: "give_stars", amount })
+      });
+      loadUser();
     }
 
     async function giveCash() {
