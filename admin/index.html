@@ -4,22 +4,22 @@
   <meta charset="utf-8" />
   <title>Admin panel</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-
   <style>
-    body { font-family: Arial; max-width: 900px; margin: 20px auto; }
+    body { font-family: Arial; max-width: 900px; margin: 20px auto; padding: 0 12px; }
     .card { border: 1px solid #ccc; padding: 16px; margin-bottom: 16px; border-radius: 8px; }
     .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    input, button, textarea { padding: 8px; }
-    textarea { width: 100%; height: 180px; }
-    pre { background: #f6f6f6; padding: 10px; }
-    .danger { background: #c62828; color: #fff; }
+    input, button { padding: 8px; }
+    pre { background: #f6f6f6; padding: 10px; border-radius: 6px; overflow:auto; }
+    .muted { color: #666; }
+    .ok { color: #1b5e20; }
+    .err { color: #b71c1c; }
   </style>
 </head>
 
 <body>
 
 <h1>Admin panel</h1>
-<div>API: https://boxing-manager-admin-api.onrender.com</div>
+<div class="muted">API: https://boxing-manager-admin-api.onrender.com</div>
 
 <!-- LOGIN -->
 <div class="card">
@@ -29,13 +29,15 @@
     data-size="large"
     data-onauth="onTelegramAuth(user)">
   </script>
-  <div id="loginStatus">Не залогінено</div>
+  <div id="loginStatus" class="muted">Не залогінено</div>
 </div>
 
 <!-- ADMIN -->
 <div class="card" id="adminCard" style="display:none;">
-  Admin: <span id="adminInfo"></span>
-  <button onclick="logout()">Logout</button>
+  <div class="row">
+    <div>Admin: <b id="adminInfo"></b></div>
+    <button onclick="logout()">Logout</button>
+  </div>
 </div>
 
 <!-- USER -->
@@ -45,6 +47,8 @@
     <input id="userId" placeholder="telegram_user_id" />
     <button onclick="loadUser()">Load</button>
   </div>
+
+  <div id="userMsg" class="muted"></div>
   <pre id="userResult"></pre>
 
   <h4>Actions</h4>
@@ -56,11 +60,19 @@
     <input id="cashAmount" placeholder="Cash" />
     <button onclick="giveCash()">Give cash</button>
   </div>
+
+  <div id="actionMsg" class="muted"></div>
 </div>
 
 <script>
 const API = "https://boxing-manager-admin-api.onrender.com";
 let token = localStorage.getItem("admin_token");
+
+function setMsg(id, text, cls) {
+  const el = document.getElementById(id);
+  el.className = cls || "muted";
+  el.textContent = text || "";
+}
 
 function authHeaders() {
   return token ? { "Authorization": "Bearer " + token } : {};
@@ -71,29 +83,36 @@ async function api(path, options = {}) {
     ...options,
     headers: { "Content-Type": "application/json", ...authHeaders() }
   });
-  return res.json();
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = data?.error || "Request failed";
+    throw new Error(msg);
+  }
+  return data;
 }
 
 window.onTelegramAuth = async (user) => {
-  const res = await fetch(API + "/auth/telegram", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(user)
-  });
-  const data = await res.json();
+  try {
+    const res = await fetch(API + "/auth/telegram", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(user)
+    });
+    const data = await res.json();
 
-  if (!res.ok) {
-    document.getElementById("loginStatus").textContent = data.error;
-    return;
+    if (!res.ok) throw new Error(data.error || "Auth failed");
+
+    token = data.token;
+    localStorage.setItem("admin_token", token);
+
+    setMsg("loginStatus", "Залогінено", "ok");
+    document.getElementById("adminInfo").textContent = user.id;
+
+    document.getElementById("adminCard").style.display = "";
+    document.getElementById("usersCard").style.display = "";
+  } catch (e) {
+    setMsg("loginStatus", e.message, "err");
   }
-
-  token = data.token;
-  localStorage.setItem("admin_token", token);
-
-  document.getElementById("loginStatus").textContent = "Залогінено";
-  document.getElementById("adminInfo").textContent = user.id;
-  document.getElementById("adminCard").style.display = "";
-  document.getElementById("usersCard").style.display = "";
 };
 
 function logout() {
@@ -102,30 +121,55 @@ function logout() {
 }
 
 async function loadUser() {
-  const id = document.getElementById("userId").value;
-  const data = await api("/admin/users/" + id);
-  document.getElementById("userResult").textContent =
-    JSON.stringify(data, null, 2);
+  try {
+    setMsg("userMsg", "Loading...", "muted");
+    const id = document.getElementById("userId").value.trim();
+    const data = await api("/admin/users/" + id);
+    document.getElementById("userResult").textContent = JSON.stringify(data, null, 2);
+    setMsg("userMsg", "OK", "ok");
+  } catch (e) {
+    document.getElementById("userResult").textContent = "";
+    setMsg("userMsg", e.message, "err");
+  }
 }
 
 async function giveStars() {
-  const id = document.getElementById("userId").value;
-  const amount = Number(document.getElementById("starsAmount").value);
-  await api(`/admin/users/${id}/actions`, {
-    method: "POST",
-    body: JSON.stringify({ action: "give_stars", amount })
-  });
-  loadUser();
+  try {
+    setMsg("actionMsg", "Working...", "muted");
+    const id = document.getElementById("userId").value.trim();
+    const amount = Number(document.getElementById("starsAmount").value);
+    const data = await api(`/admin/users/${id}/actions`, {
+      method: "POST",
+      body: JSON.stringify({ action: "give_stars", amount })
+    });
+    document.getElementById("userResult").textContent = JSON.stringify(data, null, 2);
+    setMsg("actionMsg", "Stars updated", "ok");
+  } catch (e) {
+    setMsg("actionMsg", e.message, "err");
+  }
 }
 
 async function giveCash() {
-  const id = document.getElementById("userId").value;
-  const amount = Number(document.getElementById("cashAmount").value);
-  await api(`/admin/users/${id}/actions`, {
-    method: "POST",
-    body: JSON.stringify({ action: "give_cash", amount })
-  });
-  loadUser();
+  try {
+    setMsg("actionMsg", "Working...", "muted");
+    const id = document.getElementById("userId").value.trim();
+    const amount = Number(document.getElementById("cashAmount").value);
+    const data = await api(`/admin/users/${id}/actions`, {
+      method: "POST",
+      body: JSON.stringify({ action: "give_cash", amount })
+    });
+    document.getElementById("userResult").textContent = JSON.stringify(data, null, 2);
+    setMsg("actionMsg", "Cash updated", "ok");
+  } catch (e) {
+    setMsg("actionMsg", e.message, "err");
+  }
+}
+
+// Якщо токен є — просто показуємо панелі (віджет Telegram не “автологінить”)
+if (token) {
+  document.getElementById("adminCard").style.display = "";
+  document.getElementById("usersCard").style.display = "";
+  setMsg("loginStatus", "Залогінено (token)", "ok");
 }
 </script>
 
