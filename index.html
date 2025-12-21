@@ -5704,12 +5704,27 @@
         
         // ===== END ACHIEVEMENTS SYSTEM =====
         
-        // Loading screen
-        setTimeout(() => {
-            showPrologue();
-        }, 2500);
+        // Loading screen - auto show prologue ONLY for new players
+        let introTimer = null;
+        
+        function startIntroSequence() {
+            introTimer = setTimeout(() => {
+                showPrologue();
+            }, 2500);
+        }
+        
+        function cancelIntroSequence() {
+            if (introTimer) {
+                clearTimeout(introTimer);
+                introTimer = null;
+                console.log('🚫 Intro sequence cancelled');
+            }
+        }
         
         function showScreen(screenId) {
+            console.log(`🎬 showScreen called: ${screenId}`);
+            console.trace('Call stack:'); // Показати звідки викликано
+            
             // Haptic feedback
             hapticLight();
             
@@ -10791,6 +10806,11 @@ function refreshMarket() {
                 
                 if (result.data) {
                     console.log(`✅ Game loaded from ${result.source}`);
+                    console.log('📊 Data structure:', {
+                        hasFighters: !!(result.data.fighters),
+                        fightersLength: result.data.fighters?.length,
+                        fightersData: result.data.fighters
+                    });
                     
                     // Зберегти в localStorage для sync доступу
                     localStorage.setItem('boxingManager_character', JSON.stringify(result.data));
@@ -10798,6 +10818,9 @@ function refreshMarket() {
                     // Перевірити чи гра завершена (є боєць)
                     if (result.data.fighters && result.data.fighters.length > 0) {
                         console.log('✅ Returning player - loading game...');
+                        
+                        // Cancel intro sequence for returning players
+                        cancelIntroSequence();
                         
                         // Показати головний екран
                         await loadGameData();
@@ -10816,13 +10839,14 @@ function refreshMarket() {
                         }, 1000);
                     } else {
                         console.log('ℹ️ Player data exists but no fighters - showing intro...');
+                        console.log('   fighters:', result.data.fighters);
                         // Дані є, але немає бійців - показати інтро
-                        showScreen('loadingScreen');
+                        startIntroSequence(); // Start intro for incomplete registration
                     }
                 } else {
                     console.log('ℹ️ No saved data found - new game');
                     // Немає збережених даних - показати інтро
-                    showScreen('loadingScreen');
+                    startIntroSequence(); // Start intro for new players
                 }
                 
                 // Update Cloud status
@@ -10838,6 +10862,7 @@ function refreshMarket() {
                         const data = JSON.parse(localData);
                         if (data.fighters && data.fighters.length > 0) {
                             console.log('⚠️ Error but found localStorage - loading...');
+                            cancelIntroSequence(); // Cancel intro
                             await loadGameData();
                             showScreen('gameScreen');
                             return;
@@ -10849,7 +10874,7 @@ function refreshMarket() {
                 
                 showToast('⚠️ Помилка', 'Не вдалось завантажити дані', 'warning');
                 // Показати інтро при помилці
-                showScreen('loadingScreen');
+                startIntroSequence();
             }
         })();
     
