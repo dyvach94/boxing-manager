@@ -2,220 +2,132 @@
 <html lang="uk">
 <head>
   <meta charset="utf-8" />
+  <title>Admin panel</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Boxing Manager — Admin</title>
 
   <style>
-    body { font-family: Arial, sans-serif; max-width: 960px; margin: 24px auto; padding: 0 16px; }
-    h1, h2, h3 { margin-top: 0; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-    .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    input, button, textarea { padding: 10px; font-size: 14px; }
-    textarea { width: 100%; min-height: 220px; }
-    pre { background: #f6f6f6; padding: 12px; border-radius: 8px; overflow: auto; }
-    .muted { color: #666; font-size: 13px; }
+    body { font-family: Arial; max-width: 900px; margin: 20px auto; }
+    .card { border: 1px solid #ccc; padding: 16px; margin-bottom: 16px; border-radius: 8px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    input, button, textarea { padding: 8px; }
+    textarea { width: 100%; height: 180px; }
+    pre { background: #f6f6f6; padding: 10px; }
     .danger { background: #c62828; color: #fff; }
   </style>
 </head>
 
 <body>
-  <h1>Admin panel</h1>
-  <div class="muted">API: https://boxing-manager-admin-api.onrender.com</div>
 
-  <!-- LOGIN -->
-  <div class="card">
-    <div class="row">
-      <script async
-        src="https://telegram.org/js/telegram-widget.js?22"
-        data-telegram-login="boxing_manager_game_bot"
-        data-size="large"
-        data-onauth="onTelegramAuth(user)"
-        data-request-access="write">
-      </script>
-      <div class="muted" id="loginStatus">Не залогінено</div>
-    </div>
-  </div>
+<h1>Admin panel</h1>
+<div>API: https://boxing-manager-admin-api.onrender.com</div>
 
-  <!-- ADMIN INFO -->
-  <div class="card" id="adminCard" style="display:none;">
-    <div class="row">
-      <b id="adminInfo"></b>
-      <button onclick="logout()">Logout</button>
-    </div>
-  </div>
-
-  <!-- ECONOMY -->
-  <div class="card" id="economyCard" style="display:none;">
-    <h2>Economy</h2>
-    <div class="row">
-      <input id="econVersion" placeholder="version (e.g. 1.0.0)" />
-      <button onclick="loadEconomy()">Load</button>
-      <button onclick="saveEconomy()">Save</button>
-    </div>
-    <textarea id="econJson" placeholder="JSON"></textarea>
-    <pre id="econResult"></pre>
-  </div>
-
-  <!-- USER -->
-  <div class="card" id="usersCard" style="display:none;">
-    <h2>User</h2>
-    <div class="row">
-      <input id="userId" placeholder="telegram_user_id" />
-      <button onclick="loadUser()">Load</button>
-    </div>
-    <pre id="userResult"></pre>
-
-    <h3>Actions</h3>
-    <div class="row">
-      <input id="starsAmount" placeholder="Stars" />
-      <button onclick="giveStars()">Give stars</button>
-    </div>
-    <div class="row">
-      <input id="cashAmount" placeholder="Cash" />
-      <button onclick="giveCash()">Give cash</button>
-    </div>
-    <div class="row">
-      <input id="vipDays" placeholder="VIP days" />
-      <button onclick="setVip()">Set VIP</button>
-    </div>
-    <div class="row">
-      <button class="danger" onclick="banUser(true)">Ban</button>
-      <button onclick="banUser(false)">Unban</button>
-    </div>
-  </div>
-
-  <script>
-    const API = "https://boxing-manager-admin-api.onrender.com";
-    let token = localStorage.getItem("admin_token");
-
-    function show(id, yes) {
-      document.getElementById(id).style.display = yes ? "" : "none";
-    }
-    function setText(id, text) {
-      document.getElementById(id).textContent = text;
-    }
-    function authHeaders() {
-      return token ? { "Authorization": "Bearer " + token } : {};
-    }
-    async function api(path, options = {}) {
-      const res = await fetch(API + path, {
-        ...options,
-        headers: { "Content-Type": "application/json", ...authHeaders() }
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error");
-      return data;
-    }
-
-    window.onTelegramAuth = async (user) => {
-      try {
-        const res = await fetch(API + "/auth/telegram", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(user)
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-
-        token = data.token;
-        localStorage.setItem("admin_token", token);
-
-        setText("loginStatus", "Залогінено");
-        setText("adminInfo", "Admin: " + user.id);
-        show("adminCard", true);
-        show("economyCard", true);
-        show("usersCard", true);
-      } catch (e) {
-        setText("loginStatus", e.message);
-      }
-    };
-
-    function logout() {
-      localStorage.removeItem("admin_token");
-      token = null;
-      location.reload();
-    }
-
-    async function loadEconomy() {
-      try {
-        const data = await api("/admin/economy");
-        document.getElementById("econVersion").value = data.version || "";
-        document.getElementById("econJson").value = JSON.stringify(data.value_json || {}, null, 2);
-        document.getElementById("econResult").textContent = "Loaded";
-      } catch (e) {
-        document.getElementById("econResult").textContent = e.message;
-      }
-    }
-
-    async function saveEconomy() {
-      try {
-        const version = document.getElementById("econVersion").value;
-        const value_json = JSON.parse(document.getElementById("econJson").value || "{}");
-        await api("/admin/economy", {
-          method: "PUT",
-          body: JSON.stringify({ version, value_json })
-        });
-        document.getElementById("econResult").textContent = "Saved";
-      } catch (e) {
-        document.getElementById("econResult").textContent = e.message;
-      }
-    }
-
-    async function loadUser() {
-      try {
-        const id = document.getElementById("userId").value;
-        const data = await api("/admin/users/" + id);
-        document.getElementById("userResult").textContent = JSON.stringify(data, null, 2);
-      } catch (e) {
-        document.getElementById("userResult").textContent = e.message;
-      }
-    }
-
-    async function giveStars() {
-      const id = document.getElementById("userId").value;
-      const amount = Number(document.getElementById("starsAmount").value);
-      await api(`/admin/users/${id}/actions`, {
-        method: "POST",
-        body: JSON.stringify({ action: "give_stars", amount })
-      });
-      loadUser();
-    }
-
-    async function giveCash() {
-      const id = document.getElementById("userId").value;
-      const amount = Number(document.getElementById("cashAmount").value);
-      await api(`/admin/users/${id}/actions`, {
-        method: "POST",
-        body: JSON.stringify({ action: "give_cash", amount })
-      });
-      loadUser();
-    }
-
-    async function setVip() {
-      const id = document.getElementById("userId").value;
-      const vip_days = Number(document.getElementById("vipDays").value);
-      await api(`/admin/users/${id}/actions`, {
-        method: "POST",
-        body: JSON.stringify({ action: "set_vip", vip_days })
-      });
-      loadUser();
-    }
-
-    async function banUser(banned) {
-      const id = document.getElementById("userId").value;
-      await api(`/admin/users/${id}/actions`, {
-        method: "POST",
-        body: JSON.stringify({ action: "set_ban", banned })
-      });
-      loadUser();
-    }
-
-    if (token) {
-      setText("loginStatus", "Залогінено");
-      show("adminCard", true);
-      show("economyCard", true);
-      show("usersCard", true);
-    }
+<!-- LOGIN -->
+<div class="card">
+  <script async
+    src="https://telegram.org/js/telegram-widget.js?22"
+    data-telegram-login="boxing_manager_game_bot"
+    data-size="large"
+    data-onauth="onTelegramAuth(user)">
   </script>
+  <div id="loginStatus">Не залогінено</div>
+</div>
+
+<!-- ADMIN -->
+<div class="card" id="adminCard" style="display:none;">
+  Admin: <span id="adminInfo"></span>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<!-- USER -->
+<div class="card" id="usersCard" style="display:none;">
+  <h3>User</h3>
+  <div class="row">
+    <input id="userId" placeholder="telegram_user_id" />
+    <button onclick="loadUser()">Load</button>
+  </div>
+  <pre id="userResult"></pre>
+
+  <h4>Actions</h4>
+  <div class="row">
+    <input id="starsAmount" placeholder="Stars" />
+    <button onclick="giveStars()">Give stars</button>
+  </div>
+  <div class="row">
+    <input id="cashAmount" placeholder="Cash" />
+    <button onclick="giveCash()">Give cash</button>
+  </div>
+</div>
+
+<script>
+const API = "https://boxing-manager-admin-api.onrender.com";
+let token = localStorage.getItem("admin_token");
+
+function authHeaders() {
+  return token ? { "Authorization": "Bearer " + token } : {};
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(API + path, {
+    ...options,
+    headers: { "Content-Type": "application/json", ...authHeaders() }
+  });
+  return res.json();
+}
+
+window.onTelegramAuth = async (user) => {
+  const res = await fetch(API + "/auth/telegram", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(user)
+  });
+  const data = await res.json();
+
+  if (!res.ok) {
+    document.getElementById("loginStatus").textContent = data.error;
+    return;
+  }
+
+  token = data.token;
+  localStorage.setItem("admin_token", token);
+
+  document.getElementById("loginStatus").textContent = "Залогінено";
+  document.getElementById("adminInfo").textContent = user.id;
+  document.getElementById("adminCard").style.display = "";
+  document.getElementById("usersCard").style.display = "";
+};
+
+function logout() {
+  localStorage.removeItem("admin_token");
+  location.reload();
+}
+
+async function loadUser() {
+  const id = document.getElementById("userId").value;
+  const data = await api("/admin/users/" + id);
+  document.getElementById("userResult").textContent =
+    JSON.stringify(data, null, 2);
+}
+
+async function giveStars() {
+  const id = document.getElementById("userId").value;
+  const amount = Number(document.getElementById("starsAmount").value);
+  await api(`/admin/users/${id}/actions`, {
+    method: "POST",
+    body: JSON.stringify({ action: "give_stars", amount })
+  });
+  loadUser();
+}
+
+async function giveCash() {
+  const id = document.getElementById("userId").value;
+  const amount = Number(document.getElementById("cashAmount").value);
+  await api(`/admin/users/${id}/actions`, {
+    method: "POST",
+    body: JSON.stringify({ action: "give_cash", amount })
+  });
+  loadUser();
+}
+</script>
+
 </body>
 </html>
