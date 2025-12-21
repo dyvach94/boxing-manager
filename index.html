@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Boxing Manager v3.3 - NAME FIX</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@300;400;600;700&display=swap');
+
+    :root {
+      --blood-red: #8B0000;
+      --ring-red: #C41E3A;
+      --gold: #FFD700;
+      --dark-bg: #0a0a0a;
+      --canvas-white: #F5F5DC;
+      --rope-blue: #1E3A8A;
+      --steel: #4A5568;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Oswald', sans-serif;
+      background: var(--dark-bg);
+      color: var(--canvas-white);
+      overflow: hidden;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,.03) 2px,
+        rgba(0,0,0,.03) 4px
+      );
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.3;
+    }
+
+    .screen { display:none; width:100%; height:100vh; position:absolute; top:0; left:0; overflow-y:auto; overflow-x:hidden; }
+    .screen.active { display:flex; flex-direction:column; }
+
+    @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+    @keyframes slideUp { from{opacity:0; transform:translateY(30px);} to{opacity:1; transform:translateY(0);} }
+
+    /* LOADING */
+    #loadingScreen { justify-content:center; align-items:center; background:var(--dark-bg); }
+    .loading-content { text-align:center; position:relative; z-index:2; }
+    .game-logo {
+      font-family:'Bebas Neue', sans-serif;
+      font-size: clamp(2rem, 8vw, 3rem);
+      letter-spacing:0.2rem;
+      margin-bottom:1rem;
+      text-transform:uppercase;
+      color:var(--canvas-white);
+    }
+    .game-subtitle {
+      font-size: clamp(0.8rem, 3vw, 1rem);
+      letter-spacing:0.3rem;
+      opacity:0.5;
+      font-weight:300;
+    }
+    .loading-bar-container {
+      width:min(250px, 80vw);
+      height:2px;
+      background:rgba(255,255,255,0.1);
+      margin:2.5rem auto 1rem;
+      overflow:hidden;
+      position:relative;
+    }
+    .loading-bar {
+      height:100%;
+      background:var(--canvas-white);
+      animation:loading 1.2s ease-in-out forwards;
+      width:0%;
+    }
+    @keyframes loading { 0%{width:0%;} 100%{width:100%;} }
+    .loading-text { font-size:0.9rem; opacity:0.6; margin-top:1rem; letter-spacing:0.2rem; }
+
+    /* PROLOGUE */
+    #prologueScreen {
+      background:var(--dark-bg);
+      padding:1.5rem;
+      justify-content:center;
+      align-items:center;
+      position:relative;
+    }
+    #prologueScreen::after {
+      content:'';
+      position:absolute; top:0; left:0; width:100%; height:100%;
+      background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.7) 100%);
+      pointer-events:none;
+    }
+    .prologue-content { max-width:500px; text-align:center; position:relative; padding:0 1rem; z-index:1; }
+    .prologue-text { font-size: clamp(1.1rem, 4vw, 1.5rem); line-height:2; font-weight:300; }
+    .prologue-line { opacity:0; transform:translateY(10px); display:block; margin-bottom:0.8rem; }
+    .prologue-line.highlight { color:var(--gold); font-weight:400; }
+    .prologue-line.fade-in { animation: fadeInLine 1.0s ease-out forwards; }
+    @keyframes fadeInLine { to { opacity:1; transform:translateY(0); } }
+
+    .continue-button, .start-button, .btn {
+      margin-top:2rem;
+      padding:0.9rem 2rem;
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.3);
+      color:var(--canvas-white);
+      font-family:'Oswald', sans-serif;
+      font-size:1rem;
+      letter-spacing:0.1rem;
+      cursor:pointer;
+      transition: all 0.3s ease;
+      border-radius:6px;
+    }
+    .continue-button:active, .start-button:active, .btn:active { background:rgba(255,255,255,0.05); border-color:var(--gold); transform:scale(0.98); }
+
+    /* CHARACTER */
+    #characterScreen { padding:1.5rem; background:var(--dark-bg); overflow-y:auto; }
+    .character-header { text-align:center; margin-bottom:2rem; }
+    .character-title { font-size: clamp(1.3rem, 5vw, 1.8rem); font-weight:300; letter-spacing:0.1rem; margin-bottom:0.5rem; }
+    .character-subtitle { font-size:0.9rem; opacity:0.5; font-weight:300; }
+    .form-container { max-width:500px; margin:0 auto; }
+    .form-group { margin-bottom:1.5rem; }
+    .form-label { display:block; font-size:0.9rem; letter-spacing:0.05rem; opacity:0.7; margin-bottom:0.8rem; font-weight:300; }
+    .form-input, .form-select {
+      width:100%;
+      padding:0.9rem 0.5rem;
+      background:transparent;
+      border:none;
+      border-bottom:1px solid rgba(255,255,255,0.2);
+      color:var(--canvas-white);
+      font-family:'Oswald', sans-serif;
+      font-size:1.15rem;
+      transition: all 0.3s ease;
+    }
+    .form-select {
+      appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23F5F5DC' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;
+      background-position:right 0.5rem center;
+      padding-right:2rem;
+    }
+    .form-select option { background:var(--dark-bg); color:var(--canvas-white); }
+    .form-input:focus, .form-select:focus { outline:none; border-bottom-color:var(--gold); }
+    .start-button { width:100%; margin-top:1.5rem; }
+
+    /* SIMPLE GAME */
+    #gameScreen { background:var(--dark-bg); overflow-y:auto; padding:1rem; }
+    .card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .card h2 { font-weight:400; margin-bottom:0.5rem; }
+    .muted { opacity:0.6; font-weight:300; }
+    .row { display:flex; gap:0.75rem; flex-wrap:wrap; }
+    .pill {
+      border:1px solid rgba(255,255,255,0.2);
+      border-radius:999px;
+      padding:0.35rem 0.7rem;
+      font-size:0.85rem;
+      opacity:0.9;
+    }
+  </style>
+</head>
+<body>
+  <!-- Screens -->
+  <section id="loadingScreen" class="screen active">
+    <div class="loading-content">
+      <div class="game-logo">BOXING MANAGER</div>
+      <div class="game-subtitle">MINI-APP</div>
+      <div class="loading-bar-container"><div class="loading-bar"></div></div>
+      <div class="loading-text">Завантаження...</div>
+    </div>
+  </section>
+
+  <section id="prologueScreen" class="screen">
+    <div class="prologue-content">
+      <div class="prologue-text" id="prologueText">
+        <span class="prologue-line">Місто спить.</span>
+        <span class="prologue-line highlight">Ринг — ні.</span>
+        <span class="prologue-line">Тут виграють не найсильніші.</span>
+        <span class="prologue-line highlight">Тут виграють розумні.</span>
+      </div>
+      <button class="continue-button" id="toCharacterBtn">ПРОДОВЖИТИ</button>
+    </div>
+  </section>
+
+  <section id="characterScreen" class="screen">
+    <div class="character-header">
+      <div class="character-title">Створення менеджера</div>
+      <div class="character-subtitle">Мінімальний стартовий профіль</div>
+    </div>
+
+    <div class="form-container">
+      <div class="form-group">
+        <label class="form-label" for="managerName">Ваше імʼя</label>
+        <input class="form-input" id="managerName" placeholder="Напр. Максим" maxlength="18" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="managerStyle">Стиль</label>
+        <select class="form-select" id="managerStyle">
+          <option value="street">Street</option>
+          <option value="classic">Classic</option>
+          <option value="hustler">Hustler</option>
+        </select>
+      </div>
+
+      <button class="start-button" id="startGameBtn" disabled>СТАРТ</button>
+      <div class="muted" style="margin-top:0.8rem; text-align:center;">
+        Порада: у Telegram відкрийте з меню бота → Web App.
+      </div>
+    </div>
+  </section>
+
+  <section id="gameScreen" class="screen">
+    <div class="card">
+      <h2 id="mgrTitle">Менеджер</h2>
+      <div class="row" id="mgrPills"></div>
+    </div>
+
+    <div class="card">
+      <h2>Швидкі дії</h2>
+      <div class="row">
+        <button class="btn" id="earnBtn">Заробити +50</button>
+        <button class="btn" id="trainBtn">Тренування</button>
+        <button class="btn" id="resetBtn">Скинути</button>
+      </div>
+      <div class="muted" id="statusLine" style="margin-top:0.7rem;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Ресурси</h2>
+      <div class="row">
+        <div class="pill">💵 Гроші: <span id="money">200</span></div>
+        <div class="pill">⭐ VIP: <span id="vip">0</span></div>
+        <div class="pill">🥊 Рейтинг: <span id="rating">0</span></div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // Telegram WebApp init (safe in browser too)
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) {
+      tg.ready();
+      try { tg.expand(); } catch(e) {}
+    }
+
+    const screens = ["loadingScreen", "prologueScreen", "characterScreen", "gameScreen"]
+      .map(id => document.getElementById(id));
+
+    function show(id) {
+      screens.forEach(s => s.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+    }
+
+    // Loading -> Prologue
+    setTimeout(() => {
+      show("prologueScreen");
+      const lines = document.querySelectorAll(".prologue-line");
+      lines.forEach((el, i) => setTimeout(() => el.classList.add("fade-in"), 250 * i));
+    }, 1200);
+
+    const nameInput = document.getElementById("managerName");
+    const styleSelect = document.getElementById("managerStyle");
+    const startBtn = document.getElementById("startGameBtn");
+
+    function validate() {
+      startBtn.disabled = !(nameInput.value || "").trim().length;
+    }
+    nameInput.addEventListener("input", validate);
+
+    document.getElementById("toCharacterBtn").addEventListener("click", () => show("characterScreen"));
+
+    // Simple state
+    const state = {
+      name: "",
+      style: "street",
+      money: 200,
+      vip: 0,
+      rating: 0
+    };
+
+    function render() {
+      document.getElementById("mgrTitle").textContent = `Менеджер: ${state.name}`;
+      const u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
+      document.getElementById("mgrPills").innerHTML = `
+        <div class="pill">🎭 Стиль: ${state.style}</div>
+        <div class="pill">🆔 TG: ${u ? (u.username || u.id) : "browser"}</div>
+      `;
+      document.getElementById("money").textContent = state.money;
+      document.getElementById("vip").textContent = state.vip;
+      document.getElementById("rating").textContent = state.rating;
+    }
+
+    function setStatus(msg) {
+      document.getElementById("statusLine").textContent = msg || "";
+    }
+
+    startBtn.addEventListener("click", () => {
+      state.name = (nameInput.value || "").trim();
+      state.style = styleSelect.value;
+      render();
+      show("gameScreen");
+      setStatus("Профіль створено.");
+    });
+
+    document.getElementById("earnBtn").addEventListener("click", () => {
+      state.money += 50;
+      state.rating += 1;
+      render();
+      setStatus("Ви отримали +50 грошей, рейтинг +1.");
+      if (tg) { try { tg.HapticFeedback.impactOccurred("light"); } catch(e) {} }
+    });
+
+    document.getElementById("trainBtn").addEventListener("click", () => {
+      if (state.money < 100) {
+        setStatus("Недостатньо грошей для тренування (потрібно 100).");
+        if (tg) { try { tg.HapticFeedback.notificationOccurred("error"); } catch(e) {} }
+        return;
+      }
+      state.money -= 100;
+      state.rating += 3;
+      render();
+      setStatus("Тренування завершено: -100 грошей, рейтинг +3.");
+      if (tg) { try { tg.HapticFeedback.notificationOccurred("success"); } catch(e) {} }
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      state.money = 200;
+      state.vip = 0;
+      state.rating = 0;
+      render();
+      setStatus("Ресурси скинуто.");
+    });
+  </script>
+</body>
+</html>
