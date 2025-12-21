@@ -6126,19 +6126,22 @@
             // Show VIP welcome bonus for new players
             setTimeout(() => {
                 const characterData = JSON.parse(localStorage.getItem('boxingManager_character'));
-                if (characterData.gameState.isNewPlayer) {
-                    const vipEndDate = new Date(characterData.gameState.vipUntil);
+                if (characterData && characterData.gameState && characterData.gameState.isNewPlayer) {
                     const daysLeft = Math.ceil((characterData.gameState.vipUntil - Date.now()) / (24 * 60 * 60 * 1000));
+                    
+                    console.log('🎁 Showing welcome bonus toast...');
                     
                     showToast(
                         '🎁 Вітальний бонус!',
-                        `VIP статус на ${daysLeft} дні\n💰 +2,000 грошей\n⭐ +50 зірок\n\nПриємної гри!`,
+                        `VIP статус на ${daysLeft} дні\n💰 $2,000 грошей\n⭐ 50 зірок\n\nПриємної гри!`,
                         'success'
                     );
                     
                     // Mark as shown
                     characterData.gameState.isNewPlayer = false;
                     saveGameSync(characterData);
+                } else {
+                    console.log('ℹ️ No welcome bonus (not new player or data missing)');
                 }
             }, 1500);
         }
@@ -10761,7 +10764,19 @@ function refreshMarket() {
             
             try {
                 // Спробувати завантажити з Cloud
-                const result = await gameStorage.loadCharacter();
+                let result = await gameStorage.loadCharacter();
+                
+                // Якщо Cloud не дав результат, спробувати localStorage
+                if (!result.data) {
+                    const localData = localStorage.getItem('boxingManager_character');
+                    if (localData) {
+                        result = {
+                            data: JSON.parse(localData),
+                            source: 'local_direct'
+                        };
+                        console.log('📦 Loaded from localStorage (direct)');
+                    }
+                }
                 
                 if (result.data) {
                     console.log(`✅ Game loaded from ${result.source}`);
@@ -10789,8 +10804,8 @@ function refreshMarket() {
                             );
                         }, 1000);
                     } else {
-                        console.log('ℹ️ New player - showing intro...');
-                        // Новий гравець - показати інтро
+                        console.log('ℹ️ Player data exists but no fighters - showing intro...');
+                        // Дані є, але немає бійців - показати інтро
                         showScreen('loadingScreen');
                     }
                 } else {
@@ -10804,7 +10819,24 @@ function refreshMarket() {
                 
             } catch (error) {
                 console.error('Initialization error:', error);
-                showToast('⚠️ Помилка', 'Не вдалось завантажити з Cloud', 'warning');
+                
+                // Fallback: спробувати localStorage при помилці
+                try {
+                    const localData = localStorage.getItem('boxingManager_character');
+                    if (localData) {
+                        const data = JSON.parse(localData);
+                        if (data.fighters && data.fighters.length > 0) {
+                            console.log('⚠️ Error but found localStorage - loading...');
+                            await loadGameData();
+                            showScreen('gameScreen');
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Fallback error:', e);
+                }
+                
+                showToast('⚠️ Помилка', 'Не вдалось завантажити дані', 'warning');
                 // Показати інтро при помилці
                 showScreen('loadingScreen');
             }
