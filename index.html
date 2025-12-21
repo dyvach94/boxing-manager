@@ -6228,6 +6228,17 @@
                 saveGameSync(characterData);
             }
             
+            // Initialize VIP fields if missing
+            if (gameState.vipUntil === undefined) {
+                gameState.vipUntil = 0;
+                saveGameSync(characterData);
+            }
+            
+            if (gameState.isNewPlayer === undefined) {
+                gameState.isNewPlayer = false;
+                saveGameSync(characterData);
+            }
+            
             // Update MANAGER profile
             document.getElementById('managerAvatar').textContent = '👔';
             document.getElementById('managerName').textContent = characterData.name;
