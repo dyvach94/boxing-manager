@@ -4,212 +4,247 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Boxing Manager — Admin</title>
+
   <style>
-    body{font-family:Arial, sans-serif; max-width:980px; margin:24px auto; padding:0 16px;}
-    .card{border:1px solid #ddd; border-radius:12px; padding:14px; margin:14px 0;}
-    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
-    input, button, textarea{font-size:14px; padding:10px;}
-    textarea{width:100%; min-height:220px;}
-    pre{background:#f6f6f6; padding:12px; border-radius:12px; overflow:auto;}
-    .muted{color:#666; font-size:12px;}
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 960px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    button, input, textarea {
+      padding: 10px;
+      font-size: 14px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 220px;
+    }
+    pre {
+      background: #f6f6f6;
+      padding: 12px;
+      border-radius: 8px;
+      overflow: auto;
+    }
+    .muted {
+      color: #666;
+      font-size: 13px;
+    }
   </style>
 </head>
-<body>
-  <h1>Admin</h1>
-  <div class="muted">API: <span id="apiBase"></span></div>
 
-  <div class="card" id="loginCard">
-    <div class="row">
-    <script async src="https://telegram.org/js/telegram-widget.js?22"
-  data-telegram-login="boxing_manager_game_bot"
-  data-size="large"
-  data-onauth="onTelegramAuth(user)"
-  data-request-access="write">
-</script>
-      <div class="muted">Логін через Telegram</div>
-    </div>
-    <div class="muted" id="loginStatus">Не залогінено</div>
+<body>
+  <h1>Admin panel</h1>
+  <div class="muted">
+    API: https://boxing-manager-admin-api.onrender.com
   </div>
 
-  <div class="card" id="appCard" style="display:none;">
+  <!-- LOGIN -->
+  <div class="card">
+    <div class="row">
+      <script async
+        src="https://telegram.org/js/telegram-widget.js?22"
+        data-telegram-login="boxing_manager_game_bot"
+        data-size="large"
+        data-onauth="onTelegramAuth(user)"
+        data-request-access="write">
+      </script>
+      <div class="muted" id="loginStatus">Не залогінено</div>
+    </div>
+  </div>
+
+  <!-- ADMIN INFO -->
+  <div class="card" id="adminCard" style="display:none;">
     <div class="row">
       <b id="adminInfo"></b>
-      <button id="logoutBtn">Logout</button>
+      <button onclick="logout()">Logout</button>
     </div>
   </div>
 
+  <!-- ECONOMY -->
   <div class="card" id="economyCard" style="display:none;">
     <h2>Economy</h2>
     <div class="row">
-      <input id="econVersion" placeholder="version (наприклад 1.0.0)" />
-      <button id="loadEconBtn">Load</button>
-      <button id="saveEconBtn">Save</button>
+      <input id="econVersion" placeholder="version (e.g. 1.0.0)" />
+      <button onclick="loadEconomy()">Load</button>
+      <button onclick="saveEconomy()">Save</button>
     </div>
     <textarea id="econJson"></textarea>
     <pre id="econResult"></pre>
   </div>
 
+  <!-- USERS -->
   <div class="card" id="usersCard" style="display:none;">
-    <h2>Users</h2>
+    <h2>User</h2>
     <div class="row">
       <input id="userId" placeholder="telegram_user_id" />
-      <button id="loadUserBtn">Load user</button>
+      <button onclick="loadUser()">Load</button>
     </div>
     <pre id="userResult"></pre>
 
     <h3>Actions</h3>
     <div class="row">
-      <input id="cashAmount" placeholder="give cash (e.g. 1000)" />
-      <button id="giveCashBtn">Give cash</button>
+      <input id="cashAmount" placeholder="Give cash" />
+      <button onclick="giveCash()">Give cash</button>
     </div>
-
     <div class="row">
-      <input id="vipDays" placeholder="VIP days (e.g. 7)" />
-      <button id="setVipBtn">Set VIP</button>
+      <input id="vipDays" placeholder="VIP days" />
+      <button onclick="setVip()">Set VIP</button>
     </div>
-
     <div class="row">
-      <button id="banBtn">Ban</button>
-      <button id="unbanBtn">Unban</button>
+      <button onclick="banUser(true)">Ban</button>
+      <button onclick="banUser(false)">Unban</button>
     </div>
   </div>
 
   <script>
-    const API_BASE = "https://boxing-manager-admin-api.onrender.com";
-    document.getElementById("apiBase").textContent = API_BASE;
+    const API = "https://boxing-manager-admin-api.onrender.com";
 
-    let token = localStorage.getItem("admin_token") || "";
-    let admin = JSON.parse(localStorage.getItem("admin_info") || "null");
+    let token = localStorage.getItem("admin_token");
 
-    function show(id, yes){ document.getElementById(id).style.display = yes ? "" : "none"; }
-    function setText(id, t){ document.getElementById(id).textContent = t; }
-
-    function refreshUI(){
-      const logged = !!token;
-      show("appCard", logged);
-      show("economyCard", logged);
-      show("usersCard", logged);
-      setText("loginStatus", logged ? "Залогінено" : "Не залогінено");
-      setText("adminInfo", `Admin: ${admin?.telegram_user_id || "?"}`);
+    function show(id, yes) {
+      document.getElementById(id).style.display = yes ? "" : "none";
     }
 
-    async function api(path, opts={}){
-      const headers = {"Content-Type":"application/json", ...(opts.headers||{})};
-      if (token) headers.Authorization = "Bearer " + token;
-      const res = await fetch(API_BASE + path, {...opts, headers});
-      const txt = await res.text();
-      let json; try{ json = JSON.parse(txt); } catch{ json = {raw:txt}; }
-      if (!res.ok) throw new Error(json.error || ("HTTP " + res.status));
-      return json;
+    function setText(id, text) {
+      document.getElementById(id).textContent = text;
     }
 
-    document.getElementById("logoutBtn").onclick = () => {
-      token = ""; admin = null;
-      localStorage.removeItem("admin_token");
-      localStorage.removeItem("admin_info");
-      refreshUI();
-    };
-
-    // Economy
-    document.getElementById("loadEconBtn").onclick = async () => {
-      try{
-        const econ = await api("/admin/economy");
-        document.getElementById("econVersion").value = econ.version || "";
-        document.getElementById("econJson").value = JSON.stringify(econ.value_json || {}, null, 2);
-        document.getElementById("econResult").textContent = "Loaded.";
-      }catch(e){
-        document.getElementById("econResult").textContent = e.message;
-      }
-    };
-
-    document.getElementById("saveEconBtn").onclick = async () => {
-      try{
-        const version = document.getElementById("econVersion").value.trim() || "0";
-        const value_json = JSON.parse(document.getElementById("econJson").value || "{}");
-        await api("/admin/economy", {method:"PUT", body: JSON.stringify({version, value_json})});
-        document.getElementById("econResult").textContent = "Saved.";
-      }catch(e){
-        document.getElementById("econResult").textContent = e.message;
-      }
-    };
-
-    // Users
-    async function loadUser(){
-      const id = document.getElementById("userId").value.trim();
-      if (!id) throw new Error("Enter telegram_user_id");
-      const u = await api("/admin/users/" + encodeURIComponent(id));
-      document.getElementById("userResult").textContent = JSON.stringify(u, null, 2);
+    function authHeaders() {
+      return token
+        ? { "Authorization": "Bearer " + token }
+        : {};
     }
-    document.getElementById("loadUserBtn").onclick = async () => {
-      try{ await loadUser(); } catch(e){ document.getElementById("userResult").textContent = e.message; }
-    };
 
-    document.getElementById("giveCashBtn").onclick = async () => {
-      try{
-        const id = document.getElementById("userId").value.trim();
-        const amount = Number(document.getElementById("cashAmount").value || 0);
-        await api(`/admin/users/${encodeURIComponent(id)}/actions`, {method:"POST", body: JSON.stringify({action:"give_cash", amount})});
-        await loadUser();
-      }catch(e){ document.getElementById("userResult").textContent = e.message; }
-    };
+    async function api(path, options = {}) {
+      const res = await fetch(API + path, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders()
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error");
+      return data;
+    }
 
-    document.getElementById("setVipBtn").onclick = async () => {
-      try{
-        const id = document.getElementById("userId").value.trim();
-        const vip_days = Number(document.getElementById("vipDays").value || 0);
-        await api(`/admin/users/${encodeURIComponent(id)}/actions`, {method:"POST", body: JSON.stringify({action:"set_vip", vip_days})});
-        await loadUser();
-      }catch(e){ document.getElementById("userResult").textContent = e.message; }
-    };
-
-    document.getElementById("banBtn").onclick = async () => {
-      try{
-        const id = document.getElementById("userId").value.trim();
-        await api(`/admin/users/${encodeURIComponent(id)}/actions`, {method:"POST", body: JSON.stringify({action:"set_ban", banned:true})});
-        await loadUser();
-      }catch(e){ document.getElementById("userResult").textContent = e.message; }
-    };
-
-    document.getElementById("unbanBtn").onclick = async () => {
-      try{
-        const id = document.getElementById("userId").value.trim();
-        await api(`/admin/users/${encodeURIComponent(id)}/actions`, {method:"POST", body: JSON.stringify({action:"set_ban", banned:false})});
-        await loadUser();
-      }catch(e){ document.getElementById("userResult").textContent = e.message; }
-    };
-
-    // Telegram login
     window.onTelegramAuth = async (user) => {
-      try{
-        const res = await fetch(API_BASE + "/auth/telegram", {
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
+      try {
+        const res = await fetch(API + "/auth/telegram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(user)
         });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Auth failed");
-        token = json.token;
-        admin = { telegram_user_id: user.id, username: user.username || null };
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        token = data.token;
         localStorage.setItem("admin_token", token);
-        localStorage.setItem("admin_info", JSON.stringify(admin));
-        refreshUI();
-      }catch(e){
+
+        setText("loginStatus", "Залогінено");
+        setText("adminInfo", "Admin: " + user.id);
+
+        show("adminCard", true);
+        show("economyCard", true);
+        show("usersCard", true);
+      } catch (e) {
         setText("loginStatus", e.message);
       }
     };
 
-    // IMPORTANT: put your bot username here (without @)
-    const BOT_USERNAME = "boxing_manager_game_bot";
+    function logout() {
+      localStorage.removeItem("admin_token");
+      token = null;
+      location.reload();
+    }
 
-    const script = document.createElement("script");
-    script.async = true;
-    script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.setAttribute("data-telegram-login", BOT_USERNAME);
-    script.setAttribute("data-size", "large");
-    script.setAttribute("data-onauth", "onTelegramAuth(user)");
-    document.getElementById("tgLogin").appendChild(script);
+    async function loadEconomy() {
+      try {
+        const data = await api("/admin/economy");
+        document.getElementById("econVersion").value = data.version;
+        document.getElementById("econJson").value =
+          JSON.stringify(data.value_json, null, 2);
+        document.getElementById("econResult").textContent = "Loaded";
+      } catch (e) {
+        document.getElementById("econResult").textContent = e.message;
+      }
+    }
 
-    refreshUI();
+    async function saveEconomy() {
+      try {
+        const version = document.getElementById("econVersion").value;
+        const value_json = JSON.parse(
+          document.getElementById("econJson").value
+        );
+        await api("/admin/economy", {
+          method: "PUT",
+          body: JSON.stringify({ version, value_json })
+        });
+        document.getElementById("econResult").textContent = "Saved";
+      } catch (e) {
+        document.getElementById("econResult").textContent = e.message;
+      }
+    }
+
+    async function loadUser() {
+      try {
+        const id = document.getElementById("userId").value;
+        const data = await api("/admin/users/" + id);
+        document.getElementById("userResult").textContent =
+          JSON.stringify(data, null, 2);
+      } catch (e) {
+        document.getElementById("userResult").textContent = e.message;
+      }
+    }
+
+    async function giveCash() {
+      const id = document.getElementById("userId").value;
+      const amount = Number(document.getElementById("cashAmount").value);
+      await api(`/admin/users/${id}/actions`, {
+        method: "POST",
+        body: JSON.stringify({ action: "give_cash", amount })
+      });
+      loadUser();
+    }
+
+    async function setVip() {
+      const id = document.getElementById("userId").value;
+      const vip_days = Number(document.getElementById("vipDays").value);
+      await api(`/admin/users/${id}/actions`, {
+        method: "POST",
+        body: JSON.stringify({ action: "set_vip", vip_days })
+      });
+      loadUser();
+    }
+
+    async function banUser(banned) {
+      const id = document.getElementById("userId").value;
+      await api(`/admin/users/${id}/actions`, {
+        method: "POST",
+        body: JSON.stringify({ action: "set_ban", banned })
+      });
+      loadUser();
+    }
+
+    if (token) {
+      setText("loginStatus", "Залогінено");
+      show("adminCard", true);
+      show("economyCard", true);
+      show("usersCard", true);
+    }
   </script>
 </body>
 </html>
