@@ -5,7 +5,7 @@
   <title>Admin panel</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body { font-family: Arial; max-width: 900px; margin: 20px auto; padding: 0 12px; }
+    body { font-family: Arial; max-width: 980px; margin: 20px auto; padding: 0 12px; }
     .card { border: 1px solid #ccc; padding: 16px; margin-bottom: 16px; border-radius: 8px; }
     .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     input, button { padding: 8px; }
@@ -13,13 +13,23 @@
     .muted { color: #666; }
     .ok { color: #1b5e20; }
     .err { color: #b71c1c; }
+    code { background:#f1f1f1; padding:2px 6px; border-radius:4px; }
   </style>
 </head>
 
 <body>
 
 <h1>Admin panel</h1>
-<div class="muted">API: https://boxing-manager-admin-api.onrender.com</div>
+<div class="muted">API: <code id="apiLabel"></code></div>
+
+<div class="card">
+  <div class="row">
+    <label class="muted">API URL:</label>
+    <input id="apiInput" style="min-width: 420px;" />
+    <button onclick="saveApi()">Save</button>
+  </div>
+  <div class="muted">Порада: якщо Ви оновили бекенд/домен — поміняйте тут і натисніть Save.</div>
+</div>
 
 <!-- LOGIN -->
 <div class="card">
@@ -62,11 +72,26 @@
   </div>
 
   <div id="actionMsg" class="muted"></div>
+
+  <h4>Debug</h4>
+  <pre id="debugBox"></pre>
 </div>
 
 <script>
-const API = "https://boxing-manager-admin-api.onrender.com";
+let API = localStorage.getItem("admin_api") || "https://boxing-manager-admin-api.onrender.com";
 let token = localStorage.getItem("admin_token");
+
+const apiInput = document.getElementById("apiInput");
+const apiLabel = document.getElementById("apiLabel");
+apiInput.value = API;
+apiLabel.textContent = API;
+
+function saveApi() {
+  API = apiInput.value.trim();
+  localStorage.setItem("admin_api", API);
+  apiLabel.textContent = API;
+  setMsg("actionMsg", "Saved API URL", "ok");
+}
 
 function setMsg(id, text, cls) {
   const el = document.getElementById(id);
@@ -74,21 +99,49 @@ function setMsg(id, text, cls) {
   el.textContent = text || "";
 }
 
+function setDebug(obj) {
+  document.getElementById("debugBox").textContent = typeof obj === "string"
+    ? obj
+    : JSON.stringify(obj, null, 2);
+}
+
 function authHeaders() {
   return token ? { "Authorization": "Bearer " + token } : {};
 }
 
-async function api(path, options = {}) {
-  const res = await fetch(API + path, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...authHeaders() }
+async function apiFetch(path, options = {}) {
+  const url = API + path;
+  const req = {
+    url,
+    method: options.method || "GET",
+    headers: { "Content-Type": "application/json", ...authHeaders(), ...(options.headers||{}) },
+    body: options.body
+  };
+
+  setDebug({ request: req });
+
+  const res = await fetch(url, req);
+
+  const text = await res.text();
+  let json = null;
+  try { json = JSON.parse(text); } catch {}
+
+  setDebug({
+    request: req,
+    response: {
+      status: res.status,
+      ok: res.ok,
+      text,
+      json
+    }
   });
-  const data = await res.json().catch(() => ({}));
+
   if (!res.ok) {
-    const msg = data?.error || "Request failed";
+    const msg = (json && json.error) ? json.error : text || "Request failed";
     throw new Error(msg);
   }
-  return data;
+
+  return json ?? text;
 }
 
 window.onTelegramAuth = async (user) => {
@@ -98,9 +151,16 @@ window.onTelegramAuth = async (user) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(user)
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch {}
 
-    if (!res.ok) throw new Error(data.error || "Auth failed");
+    setDebug({
+      request: { url: API + "/auth/telegram", method: "POST", body: user },
+      response: { status: res.status, ok: res.ok, text, json: data }
+    });
+
+    if (!res.ok) throw new Error((data && data.error) ? data.error : text || "Auth failed");
 
     token = data.token;
     localStorage.setItem("admin_token", token);
@@ -117,6 +177,7 @@ window.onTelegramAuth = async (user) => {
 
 function logout() {
   localStorage.removeItem("admin_token");
+  token = null;
   location.reload();
 }
 
@@ -124,7 +185,7 @@ async function loadUser() {
   try {
     setMsg("userMsg", "Loading...", "muted");
     const id = document.getElementById("userId").value.trim();
-    const data = await api("/admin/users/" + id);
+    const data = await apiFetch("/admin/users/" + id);
     document.getElementById("userResult").textContent = JSON.stringify(data, null, 2);
     setMsg("userMsg", "OK", "ok");
   } catch (e) {
@@ -138,7 +199,7 @@ async function giveStars() {
     setMsg("actionMsg", "Working...", "muted");
     const id = document.getElementById("userId").value.trim();
     const amount = Number(document.getElementById("starsAmount").value);
-    const data = await api(`/admin/users/${id}/actions`, {
+    const data = await apiFetch(`/admin/users/${id}/actions`, {
       method: "POST",
       body: JSON.stringify({ action: "give_stars", amount })
     });
@@ -154,7 +215,7 @@ async function giveCash() {
     setMsg("actionMsg", "Working...", "muted");
     const id = document.getElementById("userId").value.trim();
     const amount = Number(document.getElementById("cashAmount").value);
-    const data = await api(`/admin/users/${id}/actions`, {
+    const data = await apiFetch(`/admin/users/${id}/actions`, {
       method: "POST",
       body: JSON.stringify({ action: "give_cash", amount })
     });
@@ -165,7 +226,6 @@ async function giveCash() {
   }
 }
 
-// Якщо токен є — просто показуємо панелі (віджет Telegram не “автологінить”)
 if (token) {
   document.getElementById("adminCard").style.display = "";
   document.getElementById("usersCard").style.display = "";
