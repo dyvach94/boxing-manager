@@ -3526,7 +3526,7 @@
                        id="managerAge" 
                        class="form-input" 
                        placeholder="Скільки тобі років..."
-                       min="18"
+                       min="8"
                        max="99">
             </div>
             
@@ -3648,7 +3648,6 @@
                             <span id="managerName">Завантаження...</span>
                         </div>
                         <div class="manager-details">
-                            <span>Рівень <span id="managerLevel">1</span></span>
                             <span id="managerLocation">Київ, Україна</span>
                         </div>
                         <div class="vip-status" id="vipStatus" style="display: none;">
@@ -4301,13 +4300,7 @@
             
             if (result.data) {
                 console.log(`💾 Game loaded from ${result.source}`);
-                
-                // Показати статус завантаження
-                if (result.source === 'cloud') {
-                    showToast('☁️ Прогрес завантажено', 'З Cloud Storage', 'success');
-                } else if (result.source === 'local') {
-                    showToast('💾 Прогрес завантажено', 'Мігровано в Cloud', 'success');
-                }
+                // Toast вимкнено - не дратує користувача
             }
             
             return result.data;
@@ -5791,7 +5784,7 @@
             const city = document.getElementById('managerCity').value.trim();
             const startButton = document.getElementById('startButton');
             
-            if (name.length >= 2 && age >= 18 && age <= 99 && country && city.length >= 2) {
+            if (name.length >= 2 && age >= 8 && age <= 99 && country && city.length >= 2) {
                 startButton.disabled = false;
             } else {
                 startButton.disabled = true;
@@ -5826,7 +5819,7 @@
                 return;
             }
             
-            if (age < 18 || age > 99 || !country || cityInput.length < 2) {
+            if (age < 8 || age > 99 || !country || cityInput.length < 2) {
                 alert('❌ Будь ласка, заповни всі поля коректно!');
                 return;
             }
@@ -6224,7 +6217,6 @@
                 characterData.gameState = {
                     cash: 50000, // TEST: Was 1000
                     stars: 1000, // TEST: Was 0
-                    managerLevel: 1,
                     totalFighters: characterData.fighters.length,
                     totalWins: 0,
                     vipUntil: 0  // No VIP by default
@@ -6257,8 +6249,10 @@
             // Update MANAGER profile
             document.getElementById('managerAvatar').textContent = '👔';
             document.getElementById('managerName').textContent = characterData.name;
-            document.getElementById('managerLevel').textContent = gameState.managerLevel;
+            // Manager level видалено - не використовується
             document.getElementById('managerLocation').textContent = `${characterData.city}, ${characterData.country}`;
+            
+            console.log('✅ Manager profile updated:', characterData.name);
             
             // Update VIP star and status
             const vipStar = document.getElementById('vipStar');
@@ -8547,16 +8541,22 @@ function getSponsorBonus(fighter) {
             }
             
             // Generate regular opponents
+            // Calculate reward multiplier based on tier
+            const tierMultiplier = 1 + (currentTier.number * 0.5); // Tier 1=1.5x, Tier 2=2x, Tier 3=2.5x...
+            
             const difficulties = [
-                { name: 'easy', ratingDiff: -50, reward: 500, rep: 50, difficulty: 'Легкий' },
-                { name: 'medium', ratingDiff: 0, reward: 1000, rep: 100, difficulty: 'Рівний' },
-                { name: 'hard', ratingDiff: 100, reward: 2000, rep: 200, difficulty: 'Важкий' }
+                { name: 'easy', ratingDiff: -50, baseReward: 500, rep: 50, difficulty: 'Легкий' },
+                { name: 'medium', ratingDiff: 0, baseReward: 1000, rep: 100, difficulty: 'Рівний' },
+                { name: 'hard', ratingDiff: 100, baseReward: 2000, rep: 200, difficulty: 'Важкий' }
             ];
             
             const opponents = difficulties.map(diff => {
                 const wins = Math.floor(Math.random() * 20) + 5;
                 const losses = Math.floor(Math.random() * 10);
                 const draws = Math.floor(Math.random() * 3);
+                
+                // Calculate reward with tier multiplier
+                const reward = Math.floor(diff.baseReward * tierMultiplier);
                 
                 return {
                     firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
@@ -8567,7 +8567,7 @@ function getSponsorBonus(fighter) {
                     record: { wins, losses, draws },
                     difficulty: diff.name,
                     difficultyLabel: diff.difficulty,
-                    cashReward: diff.reward,
+                    cashReward: reward, // Динамічна нагорода!
                     repReward: diff.rep,
                     stats: calculateOpponentStats(currentTier, diff.name), // Use tier and difficulty name
                     isChampion: false
@@ -10826,17 +10826,13 @@ function refreshMarket() {
                         await loadGameData();
                         showScreen('gameScreen');
                         
-                        // Показати welcome message
-                        setTimeout(() => {
-                            const telegramUser = tg.initDataUnsafe?.user;
-                            const userName = telegramUser ? telegramUser.first_name : result.data.name;
-                            
-                            showToast(
-                                `👋 З поверненням, ${userName}!`,
-                                result.source === 'cloud' ? 'Прогрес завантажено з Cloud' : '',
-                                'success'
-                            );
-                        }, 1000);
+                        // Welcome message вимкнено - не дратує користувача
+                        // Можна включити якщо потрібно:
+                        // setTimeout(() => {
+                        //     const telegramUser = tg.initDataUnsafe?.user;
+                        //     const userName = telegramUser ? telegramUser.first_name : result.data.name;
+                        //     showToast(`👋 З поверненням, ${userName}!`, '', 'success');
+                        // }, 1000);
                     } else {
                         console.log('ℹ️ Player data exists but no fighters - showing intro...');
                         console.log('   fighters:', result.data.fighters);
