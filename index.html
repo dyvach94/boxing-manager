@@ -6074,8 +6074,27 @@
             
             // Save selected fighter
             const characterData = JSON.parse(localStorage.getItem('boxingManager_character'));
-            characterData.fighter = fighter;
+            
+            // Initialize fighters array and gameState
+            characterData.fighters = [fighter];
+            characterData.activeFighterIndex = 0;
+            characterData.unlockedSlots = 1;
+            characterData.gameState = {
+                cash: 5000,
+                stars: 0,
+                totalWins: 0,
+                totalTrainings: 0,
+                hardWins: 0,
+                winStreak: 0,
+                dailyStreak: 0
+            };
+            characterData.achievements = {};
+            characterData.team = { members: {}, monthlyCost: 0 };
+            
+            // IMPORTANT: Save to localStorage
             saveGameSync(characterData);
+            
+            console.log('✅ Character data saved:', characterData);
             
             // Send to Telegram
             tg.sendData(JSON.stringify({
