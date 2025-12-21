@@ -5065,7 +5065,7 @@
                 icon: '💎',
                 category: 'Особливе',
                 reward: { type: 'cash', amount: 3000 },
-                check: (data) => data.gameState.isVIP === true
+                check: (data) => data.gameState.vipUntil && data.gameState.vipUntil > Date.now()
             }
         };
         
@@ -6079,14 +6079,20 @@
             characterData.fighters = [fighter];
             characterData.activeFighterIndex = 0;
             characterData.unlockedSlots = 1;
+            
+            // Welcome VIP bonus - 3 days for new players
+            const vipEndTime = Date.now() + (3 * 24 * 60 * 60 * 1000); // 3 дні
+            
             characterData.gameState = {
-                cash: 5000,
-                stars: 0,
+                cash: 2000,        // Зменшено з 5000
+                stars: 50,         // Додано стартові зірки
                 totalWins: 0,
                 totalTrainings: 0,
                 hardWins: 0,
                 winStreak: 0,
-                dailyStreak: 0
+                dailyStreak: 0,
+                vipUntil: vipEndTime,  // VIP на 3 дні
+                isNewPlayer: true       // Прапорець нового гравця
             };
             characterData.achievements = {};
             characterData.team = { members: {}, monthlyCost: 0 };
@@ -6095,6 +6101,7 @@
             saveGameSync(characterData);
             
             console.log('✅ Character data saved:', characterData);
+            console.log('🎁 VIP bonus activated until:', new Date(vipEndTime).toLocaleString('uk-UA'));
             
             // Send to Telegram
             tg.sendData(JSON.stringify({
@@ -6115,6 +6122,25 @@
         function showMainGame() {
             showScreen('gameScreen');
             loadGameData();
+            
+            // Show VIP welcome bonus for new players
+            setTimeout(() => {
+                const characterData = JSON.parse(localStorage.getItem('boxingManager_character'));
+                if (characterData.gameState.isNewPlayer) {
+                    const vipEndDate = new Date(characterData.gameState.vipUntil);
+                    const daysLeft = Math.ceil((characterData.gameState.vipUntil - Date.now()) / (24 * 60 * 60 * 1000));
+                    
+                    showToast(
+                        '🎁 Вітальний бонус!',
+                        `VIP статус на ${daysLeft} дні\n💰 +2,000 грошей\n⭐ +50 зірок\n\nПриємної гри!`,
+                        'success'
+                    );
+                    
+                    // Mark as shown
+                    characterData.gameState.isNewPlayer = false;
+                    saveGameSync(characterData);
+                }
+            }, 1500);
         }
         
         async function loadGameData() {
@@ -6183,13 +6209,21 @@
                     managerLevel: 1,
                     totalFighters: characterData.fighters.length,
                     totalWins: 0,
-                    isVIP: false
+                    vipUntil: 0  // No VIP by default
                 };
                 
                 saveGameSync(characterData);
             }
             
             const gameState = characterData.gameState;
+            
+            // Migrate old VIP format to new
+            if (gameState.isVIP && gameState.vipEndTime) {
+                gameState.vipUntil = gameState.vipEndTime;
+                delete gameState.isVIP;
+                delete gameState.vipEndTime;
+                saveGameSync(characterData);
+            }
             
             // Update MANAGER profile
             document.getElementById('managerAvatar').textContent = '👔';
@@ -6201,13 +6235,13 @@
             const vipStar = document.getElementById('vipStar');
             const vipStatus = document.getElementById('vipStatus');
             
-            if (gameState.isVIP && gameState.vipEndTime && gameState.vipEndTime > Date.now()) {
+            if (gameState.vipUntil && gameState.vipUntil > Date.now()) {
                 // VIP is active
                 vipStar.classList.add('active');
                 vipStatus.style.display = 'block';
                 
                 // Calculate remaining time
-                const remaining = gameState.vipEndTime - Date.now();
+                const remaining = gameState.vipUntil - Date.now();
                 const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
                 const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
                 
@@ -9147,7 +9181,7 @@ function getSponsorBonus(fighter) {
                 }
                 
                 // Check VIP status
-                const isVIPActive = gameState.isVIP && gameState.vipEndTime > Date.now();
+                const isVIPActive = gameState.vipUntil && gameState.vipUntil > Date.now();
                 let vipBonus = 0;
                 let potentialVipBonus = 0;
                 
@@ -10735,21 +10769,34 @@ function refreshMarket() {
                     // Зберегти в localStorage для sync доступу
                     localStorage.setItem('boxingManager_character', JSON.stringify(result.data));
                     
-                    // Показати welcome message
-                    if (result.source === 'cloud') {
+                    // Перевірити чи гра завершена (є боєць)
+                    if (result.data.fighters && result.data.fighters.length > 0) {
+                        console.log('✅ Returning player - loading game...');
+                        
+                        // Показати головний екран
+                        await loadGameData();
+                        showScreen('gameScreen');
+                        
+                        // Показати welcome message
                         setTimeout(() => {
                             const telegramUser = tg.initDataUnsafe?.user;
                             const userName = telegramUser ? telegramUser.first_name : result.data.name;
                             
                             showToast(
-                                `👋 Вітаємо, ${userName}!`,
-                                'Прогрес завантажено з Cloud Storage',
+                                `👋 З поверненням, ${userName}!`,
+                                result.source === 'cloud' ? 'Прогрес завантажено з Cloud' : '',
                                 'success'
                             );
                         }, 1000);
+                    } else {
+                        console.log('ℹ️ New player - showing intro...');
+                        // Новий гравець - показати інтро
+                        showScreen('loadingScreen');
                     }
                 } else {
-                    console.log('ℹ️ No saved data found');
+                    console.log('ℹ️ No saved data found - new game');
+                    // Немає збережених даних - показати інтро
+                    showScreen('loadingScreen');
                 }
                 
                 // Update Cloud status
@@ -10758,6 +10805,8 @@ function refreshMarket() {
             } catch (error) {
                 console.error('Initialization error:', error);
                 showToast('⚠️ Помилка', 'Не вдалось завантажити з Cloud', 'warning');
+                // Показати інтро при помилці
+                showScreen('loadingScreen');
             }
         })();
     
