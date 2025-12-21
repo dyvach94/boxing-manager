@@ -3628,6 +3628,10 @@
                 <div class="resource-icon">🏆</div>
                 <div class="resource-value" id="resourceRating">0</div>
             </div>
+            <div class="resource-item" id="cloudStatus" style="cursor: pointer; opacity: 0.7;" onclick="showCloudInfo()">
+                <div class="resource-icon" id="cloudIcon">☁️</div>
+                <div class="resource-value" id="cloudText" style="font-size: 0.7rem;">Cloud</div>
+            </div>
         </div>
         
         <!-- Scrollable Content -->
@@ -3932,12 +3936,394 @@
 
     <script>
         // Initialize Telegram Web App
-        let tg = window.Telegram.WebApp;
+        let tg = window.Telegram?.WebApp || {
+            // Fallback для тестування поза Telegram
+            expand: () => console.log('Telegram API not available - using fallback'),
+            enableClosingConfirmation: () => {},
+            themeParams: { bg_color: '#0a0a0a' },
+            HapticFeedback: {
+                notificationOccurred: () => {},
+                impactOccurred: () => {}
+            },
+            BackButton: {
+                show: () => {},
+                hide: () => {},
+                onClick: () => {}
+            },
+            CloudStorage: null, // Буде null якщо не в Telegram
+            initDataUnsafe: { user: null }
+        };
+        
         tg.expand();
         tg.enableClosingConfirmation();
         
         // Set theme
         document.body.style.backgroundColor = tg.themeParams.bg_color || '#0a0a0a';
+        
+        // Перевірка чи доступний Cloud Storage
+        const isCloudAvailable = !!(tg.CloudStorage && typeof tg.CloudStorage.setItem === 'function');
+        console.log('🔍 Cloud Storage available:', isCloudAvailable);
+        
+        if (!isCloudAvailable) {
+            console.warn('⚠️ Telegram Cloud Storage недоступний. Використовується тільки localStorage.');
+        }
+        
+        // ===== CLOUD STORAGE SYSTEM =====
+        
+        // Storage Adapter Pattern - легко переключити на сервер пізніше
+        class StorageAdapter {
+            async save(key, data) {
+                throw new Error('Method not implemented');
+            }
+            
+            async load(key) {
+                throw new Error('Method not implemented');
+            }
+            
+            async remove(key) {
+                throw new Error('Method not implemented');
+            }
+        }
+        
+        // Cloud Storage Adapter (використовується ЗАРАЗ)
+        class CloudStorageAdapter extends StorageAdapter {
+            async save(key, data) {
+                return new Promise((resolve, reject) => {
+                    // Перевірка чи доступний Cloud Storage
+                    if (!tg.CloudStorage || typeof tg.CloudStorage.setItem !== 'function') {
+                        console.warn('⚠️ Cloud Storage недоступний');
+                        reject(new Error('Cloud Storage not available'));
+                        return;
+                    }
+                    
+                    try {
+                        const jsonData = JSON.stringify(data);
+                        
+                        // Якщо дані більше 4KB, розбити на частини
+                        if (jsonData.length > 3500) {
+                            const chunks = this._splitIntoChunks(jsonData, 3500);
+                            let saved = 0;
+                            
+                            chunks.forEach((chunk, index) => {
+                                tg.CloudStorage.setItem(`${key}_${index}`, chunk, (error, success) => {
+                                    if (error) {
+                                        console.error('Cloud save error:', error);
+                                        reject(error);
+                                    } else {
+                                        saved++;
+                                        if (saved === chunks.length) {
+                                            // Зберегти мета-дані про кількість частин
+                                            tg.CloudStorage.setItem(`${key}_meta`, JSON.stringify({ chunks: chunks.length }), (err) => {
+                                                if (err) reject(err);
+                                                else resolve(true);
+                                            });
+                                        }
+                                    }
+                                });
+                            });
+                        } else {
+                            // Дані влазять в один ключ
+                            tg.CloudStorage.setItem(key, jsonData, (error, success) => {
+                                if (error) {
+                                    console.error('Cloud save error:', error);
+                                    reject(error);
+                                } else {
+                                    resolve(true);
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Save error:', e);
+                        reject(e);
+                    }
+                });
+            }
+            
+            async load(key) {
+                return new Promise((resolve, reject) => {
+                    // Перевірка чи доступний Cloud Storage
+                    if (!tg.CloudStorage || typeof tg.CloudStorage.getItem !== 'function') {
+                        console.warn('⚠️ Cloud Storage недоступний');
+                        reject(new Error('Cloud Storage not available'));
+                        return;
+                    }
+                    
+                    // Спочатку перевірити чи є мета-дані (розбиті дані)
+                    tg.CloudStorage.getItem(`${key}_meta`, (error, metaData) => {
+                        if (!error && metaData) {
+                            // Дані розбиті на частини
+                            const meta = JSON.parse(metaData);
+                            const chunkKeys = [];
+                            for (let i = 0; i < meta.chunks; i++) {
+                                chunkKeys.push(`${key}_${i}`);
+                            }
+                            
+                            tg.CloudStorage.getItems(chunkKeys, (err, items) => {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    // Зібрати всі частини
+                                    let fullData = '';
+                                    for (let i = 0; i < meta.chunks; i++) {
+                                        fullData += items[`${key}_${i}`] || '';
+                                    }
+                                    
+                                    try {
+                                        resolve(JSON.parse(fullData));
+                                    } catch (e) {
+                                        reject(e);
+                                    }
+                                }
+                            });
+                        } else {
+                            // Дані в одному ключі
+                            tg.CloudStorage.getItem(key, (err, data) => {
+                                if (err) {
+                                    reject(err);
+                                } else if (data) {
+                                    try {
+                                        resolve(JSON.parse(data));
+                                    } catch (e) {
+                                        reject(e);
+                                    }
+                                } else {
+                                    resolve(null);
+                                }
+                            });
+                        }
+                    });
+                });
+            }
+            
+            async remove(key) {
+                return new Promise((resolve) => {
+                    tg.CloudStorage.removeItem(key, () => {
+                        resolve(true);
+                    });
+                });
+            }
+            
+            _splitIntoChunks(str, size) {
+                const chunks = [];
+                for (let i = 0; i < str.length; i += size) {
+                    chunks.push(str.slice(i, i + size));
+                }
+                return chunks;
+            }
+        }
+        
+        // LocalStorage Adapter (FALLBACK якщо Cloud не працює)
+        class LocalStorageAdapter extends StorageAdapter {
+            async save(key, data) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(data));
+                    return true;
+                } catch (e) {
+                    console.error('LocalStorage save error:', e);
+                    throw e;
+                }
+            }
+            
+            async load(key) {
+                try {
+                    const data = localStorage.getItem(key);
+                    return data ? JSON.parse(data) : null;
+                } catch (e) {
+                    console.error('LocalStorage load error:', e);
+                    return null;
+                }
+            }
+            
+            async remove(key) {
+                localStorage.removeItem(key);
+                return true;
+            }
+        }
+        
+        // Game Storage Manager
+        class GameStorage {
+            constructor() {
+                // Спробувати Cloud Storage, fallback на LocalStorage
+                this.cloudAdapter = new CloudStorageAdapter();
+                this.localAdapter = new LocalStorageAdapter();
+                
+                // Перевірити чи доступний Cloud Storage
+                this.useCloud = isCloudAvailable;
+                this.syncInProgress = false;
+                
+                if (this.useCloud) {
+                    console.log('💾 Storage initialized: ☁️ Cloud + 💾 Local');
+                } else {
+                    console.log('💾 Storage initialized: 💾 Local only (Cloud недоступний)');
+                }
+            }
+            
+            async saveCharacter(characterData) {
+                const saveTime = Date.now();
+                characterData._lastSave = saveTime;
+                characterData._version = '2.0';
+                
+                try {
+                    if (this.useCloud) {
+                        // Зберегти в Cloud
+                        await this.cloudAdapter.save('bm_character', characterData);
+                        console.log('☁️ Saved to Cloud Storage');
+                        
+                        // Також зберегти локально як бекап
+                        await this.localAdapter.save('bm_character', characterData);
+                        
+                        return { success: true, cloud: true, timestamp: saveTime };
+                    } else {
+                        // Тільки локально
+                        await this.localAdapter.save('bm_character', characterData);
+                        console.log('💾 Saved to Local Storage');
+                        
+                        return { success: true, cloud: false, timestamp: saveTime };
+                    }
+                } catch (error) {
+                    console.error('Save error:', error);
+                    
+                    // Fallback на локальне збереження
+                    try {
+                        await this.localAdapter.save('bm_character', characterData);
+                        this.useCloud = false;
+                        return { success: true, cloud: false, timestamp: saveTime, error: error.message };
+                    } catch (localError) {
+                        return { success: false, error: localError.message };
+                    }
+                }
+            }
+            
+            async loadCharacter() {
+                try {
+                    // Спробувати завантажити з Cloud
+                    const cloudData = await this.cloudAdapter.load('bm_character');
+                    
+                    if (cloudData) {
+                        console.log('☁️ Loaded from Cloud Storage');
+                        
+                        // Також зберегти локально
+                        await this.localAdapter.save('bm_character', cloudData);
+                        
+                        return { data: cloudData, source: 'cloud' };
+                    }
+                    
+                    // Якщо в Cloud немає, спробувати локально
+                    const localData = await this.localAdapter.load('bm_character');
+                    
+                    if (localData) {
+                        console.log('💾 Loaded from Local Storage (migrating to Cloud...)');
+                        
+                        // Мігрувати в Cloud
+                        try {
+                            await this.cloudAdapter.save('bm_character', localData);
+                            console.log('✅ Migrated to Cloud Storage');
+                        } catch (e) {
+                            console.warn('Migration failed:', e);
+                        }
+                        
+                        return { data: localData, source: 'local' };
+                    }
+                    
+                    return { data: null, source: 'none' };
+                    
+                } catch (error) {
+                    console.error('Load error:', error);
+                    
+                    // Fallback на локальне завантаження
+                    try {
+                        const localData = await this.localAdapter.load('bm_character');
+                        this.useCloud = false;
+                        return { data: localData, source: 'local_fallback' };
+                    } catch (localError) {
+                        return { data: null, source: 'error', error: localError.message };
+                    }
+                }
+            }
+            
+            async syncToCloud() {
+                if (this.syncInProgress) return;
+                
+                this.syncInProgress = true;
+                
+                try {
+                    const localData = await this.localAdapter.load('bm_character');
+                    
+                    if (localData) {
+                        await this.cloudAdapter.save('bm_character', localData);
+                        console.log('🔄 Synced to Cloud');
+                        this.useCloud = true;
+                    }
+                } catch (error) {
+                    console.error('Sync error:', error);
+                } finally {
+                    this.syncInProgress = false;
+                }
+            }
+        }
+        
+        // Глобальна змінна
+        const gameStorage = new GameStorage();
+        
+        // Автосинхронізація кожні 30 секунд
+        setInterval(() => {
+            if (gameStorage.useCloud) {
+                gameStorage.syncToCloud();
+            }
+        }, 30000);
+        
+        // Helper функції (легко використовувати по всьому коду)
+        async function saveGame(characterData) {
+            const result = await gameStorage.saveCharacter(characterData);
+            
+            if (result.success) {
+                // Показати статус збереження
+                if (result.cloud) {
+                    console.log('💾✅ Game saved to Cloud + Local');
+                } else {
+                    console.log('💾✅ Game saved to Local only');
+                }
+                
+                // DEBUG: Перевірка що збережено
+                console.log('📊 Saved data size:', JSON.stringify(characterData).length, 'bytes');
+                console.log('👤 Player:', characterData.name);
+                console.log('💰 Cash:', characterData.gameState?.cash);
+            } else {
+                console.error('❌ Save failed:', result.error);
+                showToast('Помилка збереження', result.error, 'error');
+            }
+            
+            return result.success;
+        }
+        
+        async function loadGame() {
+            const result = await gameStorage.loadCharacter();
+            
+            if (result.data) {
+                console.log(`💾 Game loaded from ${result.source}`);
+                
+                // Показати статус завантаження
+                if (result.source === 'cloud') {
+                    showToast('☁️ Прогрес завантажено', 'З Cloud Storage', 'success');
+                } else if (result.source === 'local') {
+                    showToast('💾 Прогрес завантажено', 'Мігровано в Cloud', 'success');
+                }
+            }
+            
+            return result.data;
+        }
+        
+        // Синхронна версія для сумісності (використовує localStorage як кеш)
+        function saveGameSync(characterData) {
+            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            // Async save to cloud (не блокує)
+            saveGame(characterData).catch(e => console.error('Cloud save error:', e));
+        }
+        
+        function loadGameSync() {
+            const data = localStorage.getItem('boxingManager_character');
+            return data ? JSON.parse(data) : null;
+        }
         
         // ===== UI/UX UTILITIES =====
         
@@ -4004,6 +4390,49 @@
             try { tg.HapticFeedback.impactOccurred('heavy'); } catch (e) {}
         }
         
+        // Cloud Storage status functions
+        function updateCloudStatus() {
+            const icon = document.getElementById('cloudIcon');
+            const text = document.getElementById('cloudText');
+            
+            if (!icon || !text) return;
+            
+            if (gameStorage.useCloud) {
+                icon.textContent = '☁️';
+                text.textContent = 'Cloud';
+                text.style.color = '#4ade80';
+            } else {
+                icon.textContent = '💾';
+                text.textContent = 'Local';
+                text.style.color = '#fbbf24';
+            }
+        }
+        
+        function showCloudInfo() {
+            const characterData = loadGameSync();
+            
+            if (!characterData) {
+                showToast('ℹ️ Cloud Storage', 'Немає збережених даних', 'info');
+                return;
+            }
+            
+            const lastSave = characterData._lastSave ? new Date(characterData._lastSave).toLocaleString('uk-UA') : 'Невідомо';
+            const version = characterData._version || '1.0';
+            const storage = gameStorage.useCloud ? '☁️ Cloud Storage' : '💾 Local Storage';
+            
+            const telegramUser = tg.initDataUnsafe?.user;
+            const userId = telegramUser ? telegramUser.id : 'N/A';
+            
+            showToast(
+                'Інформація про збереження',
+                `${storage}\n` +
+                `Останнє збереження: ${lastSave}\n` +
+                `Версія: ${version}\n` +
+                `Telegram ID: ${userId}`,
+                'info'
+            );
+        }
+        
         // ===== END UI/UX UTILITIES =====
         
         // ===== DAILY REWARDS SYSTEM =====
@@ -4032,7 +4461,7 @@
                         lastClaimDate: null,
                         claimedDays: []
                     };
-                    localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                    saveGameSync(characterData);
                 }
             } catch (error) {
                 console.error('Error initializing daily rewards:', error);
@@ -4139,7 +4568,7 @@
                 if (daysSince > 1) {
                     dailyData.streak = 0;
                     dailyData.claimedDays = [];
-                    localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                    saveGameSync(characterData);
                 }
             }
         }
@@ -4193,7 +4622,7 @@
                 dailyData.claimedDays = [];
             }
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             // Show success
             const rewardText = reward.type === 'cash' 
@@ -4654,7 +5083,7 @@
                         claimed: [],
                         totalClaimed: 0
                     };
-                    localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                    saveGameSync(characterData);
                 }
             } catch (error) {
                 console.error('Error initializing achievements:', error);
@@ -4914,7 +5343,7 @@
             if (result.success) {
                 const member = TEAM_MEMBERS[memberId];
                 showToast('✅ Найнято ' + member.firstName + ' ' + member.lastName + '!', '', 'success');
-                localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                saveGameSync(characterData);
                 loadTeamScreen();
             } else {
                 showToast('❌ Помилка', result.error, 'error');
@@ -4930,7 +5359,7 @@
                 
                 if (result.success) {
                     showToast('👋 Звільнено', '', 'info');
-                    localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                    saveGameSync(characterData);
                     loadTeamScreen();
                 }
             }
@@ -4952,7 +5381,7 @@
                     notified: [],
                     totalClaimed: 0
                 };
-                localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                saveGameSync(characterData);
             }
             
             // Ensure all arrays exist
@@ -5134,7 +5563,7 @@
             });
             
             if (hasNewCompletions) {
-                localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                saveGameSync(characterData);
                 updateAchievementsBadge();
             }
         }
@@ -5234,7 +5663,7 @@
             achievementsData.claimed.push(achievementId);
             achievementsData.totalClaimed++;
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             // Show success
             const rewardText = achievement.reward.type === 'cash' 
@@ -5399,7 +5828,7 @@
             };
             
             // Save to localStorage
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             // Send data to Telegram
             tg.sendData(JSON.stringify({
@@ -5646,7 +6075,7 @@
             // Save selected fighter
             const characterData = JSON.parse(localStorage.getItem('boxingManager_character'));
             characterData.fighter = fighter;
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             // Send to Telegram
             tg.sendData(JSON.stringify({
@@ -5669,9 +6098,25 @@
             loadGameData();
         }
         
-        function loadGameData() {
+        async function loadGameData() {
             console.log('loadGameData started');
-            const characterData = JSON.parse(localStorage.getItem('boxingManager_character'));
+            
+            // Спочатку спробувати завантажити з Cloud
+            showLoading();
+            const cloudResult = await loadGame();
+            
+            let characterData;
+            
+            if (cloudResult) {
+                characterData = cloudResult;
+                console.log('✅ Loaded from Cloud');
+            } else {
+                // Fallback на localStorage
+                characterData = JSON.parse(localStorage.getItem('boxingManager_character'));
+                console.log('📦 Loaded from localStorage');
+            }
+            
+            hideLoading();
             
             if (!characterData) {
                 alert('Помилка завантаження даних!');
@@ -5689,7 +6134,7 @@
                 characterData.fighters = [characterData.fighter];
                 characterData.activeFighterIndex = 0;
                 characterData.unlockedSlots = 1;
-                localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                saveGameSync(characterData);
             }
             
             console.log('Before initializeAgingSystem');
@@ -5722,7 +6167,7 @@
                     isVIP: false
                 };
                 
-                localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                saveGameSync(characterData);
             }
             
             const gameState = characterData.gameState;
@@ -5761,7 +6206,7 @@
                 if (gameState.vipEndTime && gameState.vipEndTime <= Date.now()) {
                     gameState.isVIP = false;
                     delete gameState.vipEndTime;
-                    localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                    saveGameSync(characterData);
                 }
             }
             
@@ -5778,6 +6223,9 @@
             document.getElementById('resourceCash').textContent = formatNumber(gameState.cash);
             document.getElementById('resourceStars').textContent = gameState.stars;
             document.getElementById('resourceRating').textContent = currentRating;
+            
+            // Update Cloud status
+            updateCloudStatus();
             
             // Update daily rewards badge (after DOM is ready)
             setTimeout(() => {
@@ -5819,7 +6267,7 @@
                 if (remainingTime <= 0) {
                     // Injury healed!
                     delete fighter.injury;
-                    localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                    saveGameSync(characterData);
                     showToast(`${fighter.firstName} вилікувався! 💚`, 'success');
                     renderFightersList();
                 } else {
@@ -5866,7 +6314,7 @@
             if (!fighter.talent) {
                 fighter.talent = Math.floor(Math.random() * 8) + 3; // 3-10
                 const characterData = JSON.parse(localStorage.getItem('boxingManager_character'));
-                localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                saveGameSync(characterData);
             }
             
             if (!fighter.gameData) {
@@ -6018,7 +6466,7 @@
             }
             
             characterData.activeFighterIndex = index;
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             renderFightersList();
         }
@@ -6043,7 +6491,7 @@
             gameState.stars -= 100;
             characterData.unlockedSlots = 2;
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             showToast('🎉 Слот розблоковано!', '👇 Зараз відкриється Академія!\nОбери бійця на вкладці "🌟 Новачки" або "💼 Ринок"', 'success');
             
@@ -7009,7 +7457,7 @@ function getSponsorBonus(fighter) {
                 }
                 gameState.stars -= fighter.injury.starCost;
                 delete fighter.injury;
-                localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                saveGameSync(characterData);
                 showToast('Травму вилікувано! 🏥', 'success');
                 loadGameData();
                 closeInjuryModal();
@@ -7028,7 +7476,7 @@ function getSponsorBonus(fighter) {
             const remainingTime = fighter.injury.healTime - Date.now();
             const reducedTime = remainingTime * (1 - doctor.timeReduction);
             fighter.injury.healTime = Date.now() + reducedTime;
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             const hours = Math.floor(reducedTime / (60 * 60 * 1000));
             const minutes = Math.floor((reducedTime % (60 * 60 * 1000)) / (60 * 1000));
             showToast(`Найнято лікаря! Лікування: ${hours}г ${minutes}хв 🏥`, 'success');
@@ -7540,7 +7988,7 @@ function getSponsorBonus(fighter) {
                 characterData.activeFighterIndex = characterData.fighters.length - 1;
             }
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             showToast(`${fighter.firstName} "${fighter.nickname}" проданий за $${formatNumber(price)}! 💰`, 'success');
             
@@ -7607,7 +8055,7 @@ function getSponsorBonus(fighter) {
                 }
             });
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
         }
         
         function generateTrainingOptions(type, gameState) {
@@ -7712,7 +8160,7 @@ function getSponsorBonus(fighter) {
                 actualMinutes: trainingTime
             };
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             // Show VIP bonus toast if applicable
             if (timeMultiplier < 1) {
@@ -7814,7 +8262,7 @@ function getSponsorBonus(fighter) {
             // Clear training
             delete fighter.training[type];
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             // Check achievements
             checkAchievements(characterData);
@@ -7856,7 +8304,7 @@ function getSponsorBonus(fighter) {
             gameState.stars -= 10;
             
             // Complete training instantly
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             completeTraining(type);
         }
         
@@ -7965,7 +8413,7 @@ function getSponsorBonus(fighter) {
                 delete fighter.fightCooldown.nextAvailable;
             }
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             if (fightCooldownTimer) clearInterval(fightCooldownTimer);
             loadFightsScreen();
@@ -8846,7 +9294,7 @@ function getSponsorBonus(fighter) {
             }
             
             // Save
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             updateResourceBar(); // Update rating display after fight
             
             // Check achievements - wrapped in try-catch to prevent breaking
@@ -9068,7 +9516,7 @@ function getSponsorBonus(fighter) {
             const specialResults = applyEventEffects(characterData, choice.effects);
             
             // Save
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             // Close event
             document.getElementById('eventOverlay').style.display = 'none';
@@ -9127,7 +9575,7 @@ function getSponsorBonus(fighter) {
                     lastRefresh: Date.now(),
                     candidates: generateCandidates()
                 };
-                localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                saveGameSync(characterData);
             }
             
             const academyData = gameState.academyData;
@@ -9327,7 +9775,7 @@ function getSponsorBonus(fighter) {
             gameState.academyData.candidates = generateCandidates();
             gameState.academyData.lastRefresh = Date.now();
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             alert('✨ Кандидати оновлені!\n\nНові таланти доступні!');
             
@@ -9343,7 +9791,7 @@ function getSponsorBonus(fighter) {
             gameState.academyData.candidates = generateCandidates();
             gameState.academyData.lastRefresh = Date.now();
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             if (academyTimer) clearInterval(academyTimer);
             loadAcademyScreen();
@@ -9396,7 +9844,7 @@ function getSponsorBonus(fighter) {
                 characterData.activeFighterIndex = characterData.fighters.length - 1;
             }
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             hideLoading();
             
@@ -9428,7 +9876,7 @@ function loadMarketScreen() {
     
     if (!gameState.marketData || Date.now() - gameState.marketData.lastRefresh > 6 * 60 * 60 * 1000) {
         gameState.marketData = { lastRefresh: Date.now(), fighters: generateMarketFighters() };
-        localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+        saveGameSync(characterData);
     }
     
     const content = document.getElementById('academyContent');
@@ -9541,7 +9989,7 @@ function buyMarketFighter(index) {
     characterData.fighters.push(f);
     gameState.marketData.fighters.splice(index, 1);
     
-    localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+    saveGameSync(characterData);
     
     showToast(`${f.firstName} "${f.nickname}" куплений! 🥊`, 'success');
     loadMarketScreen();
@@ -9556,7 +10004,7 @@ function refreshMarket() {
     
     gameState.stars -= 50;
     gameState.marketData = { lastRefresh: Date.now(), fighters: generateMarketFighters() };
-    localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+    saveGameSync(characterData);
     
     showToast('Ринок оновлено! 💼', 'success');
     loadMarketScreen();
@@ -9697,7 +10145,7 @@ function refreshMarket() {
             gameState.vipEndTime = endTime;
             gameState.isVIP = true;
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             showToast('🎉 VIP активовано!', `${days} днів VIP статусу\n🏋️ +20% тренування\n💵 +15% заробіток\n⏱️ -10% час`, 'success');
             
@@ -9739,7 +10187,7 @@ function refreshMarket() {
             gameState.isVIP = false;
             delete gameState.vipEndTime;
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             alert('⏰ VIP статус закінчився!\n\nБонуси деактивовані.\nПродовж VIP щоб отримати переваги знову!');
             
@@ -9815,7 +10263,7 @@ function refreshMarket() {
                 }
             });
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
             
             // Check aging every time game loads
             checkAging();
@@ -9843,7 +10291,7 @@ function refreshMarket() {
                 }
             });
             
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
         }
         
         function ageFighter(characterData, fighter) {
@@ -9954,7 +10402,7 @@ function refreshMarket() {
             fighter.retirementDate = Date.now();
             
             const characterData = JSON.parse(localStorage.getItem('boxingManager_character'));
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            saveGameSync(characterData);
         }
         
         function applyFormToTraining(baseReward, form) {
@@ -10251,6 +10699,48 @@ function refreshMarket() {
             attributes: true,
             attributeFilter: ['class']
         });
+        
+        // ===== GAME INITIALIZATION =====
+        
+        // Async initialization on page load
+        (async function initializeGame() {
+            console.log('🎮 Game initializing...');
+            
+            try {
+                // Спробувати завантажити з Cloud
+                const result = await gameStorage.loadCharacter();
+                
+                if (result.data) {
+                    console.log(`✅ Game loaded from ${result.source}`);
+                    
+                    // Зберегти в localStorage для sync доступу
+                    localStorage.setItem('boxingManager_character', JSON.stringify(result.data));
+                    
+                    // Показати welcome message
+                    if (result.source === 'cloud') {
+                        setTimeout(() => {
+                            const telegramUser = tg.initDataUnsafe?.user;
+                            const userName = telegramUser ? telegramUser.first_name : result.data.name;
+                            
+                            showToast(
+                                `👋 Вітаємо, ${userName}!`,
+                                'Прогрес завантажено з Cloud Storage',
+                                'success'
+                            );
+                        }, 1000);
+                    }
+                } else {
+                    console.log('ℹ️ No saved data found');
+                }
+                
+                // Update Cloud status
+                updateCloudStatus();
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showToast('⚠️ Помилка', 'Не вдалось завантажити з Cloud', 'warning');
+            }
+        })();
     
 </script>
 
