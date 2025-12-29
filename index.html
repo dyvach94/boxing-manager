@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Boxing Manager v1.5</title>
+    <title>Boxing Manager v1.6</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -17,7 +17,7 @@
             </div>
             <div class="loading-text">ЗАВАНТАЖЕННЯ...</div>
             <div style="position: absolute; bottom: 20px; width: 100%; text-align: center; color: var(--gold); font-size: 0.8rem; opacity: 0.6;">
-                1.5 HOTFIX - Manager Data
+                1.6 POLISH - Tutorial + UX
             </div>
         </div>
     </div>
@@ -2343,6 +2343,152 @@ const BOXER_AVATARS = [
                 showToast('❌ Помилка', 'Не вдалося відновити: ' + e.message, 'error');
             }
         }
+        
+        // ===== TUTORIAL SYSTEM =====
+        
+        let currentTutorialStep = 0;
+        const tutorialSteps = [
+            {
+                title: '👋 ВІТАЄМО!',
+                text: 'Давай швидко покажу як тут все працює!',
+                element: null,
+                position: 'center'
+            },
+            {
+                title: '👤 ТВІЙ БОЄЦЬ',
+                text: 'Це твій боєць! Тут ти бачиш його статистику та рекорд. Клікни на картку щоб побачити детальну інформацію.',
+                element: '.fighter-card',
+                position: 'bottom'
+            },
+            {
+                title: '💪 ТРЕНУВАННЯ',
+                text: 'Тут ти можеш тренувати свого бійця! Кожне тренування покращує його характеристики. Тренування відновлюються навіть коли ти офлайн!',
+                element: '.main-action-button[onclick*="openTraining"]',
+                position: 'top'
+            },
+            {
+                title: '🥊 ПОЄДИНКИ',
+                text: 'Тут ти вибираєш опонента та б\'єшся! Перемагай, отримуй гроші та піднімайся в рейтингу. Удачі!',
+                element: '.main-action-button[onclick*="openFights"]',
+                position: 'top'
+            },
+            {
+                title: '💎 VIP БОНУС',
+                text: 'Тобі подарували 3 дні VIP! VIP дає +20% до всіх нагород. Насолоджуйся грою! 🎉',
+                element: '.vip-quick-btn',
+                position: 'bottom'
+            }
+        ];
+        
+        function startTutorial() {
+            const characterData = loadGameSync();
+            
+            // Перевірити чи треба показувати tutorial
+            if (!characterData || !characterData.gameState) return;
+            if (characterData.gameState.tutorialCompleted) return;
+            if (!characterData.gameState.isNewPlayer) return;
+            
+            currentTutorialStep = 0;
+            document.getElementById('tutorialOverlay').style.display = 'block';
+            showTutorialStep(0);
+        }
+        
+        function showTutorialStep(stepIndex) {
+            const step = tutorialSteps[stepIndex];
+            if (!step) {
+                completeTutorial();
+                return;
+            }
+            
+            currentTutorialStep = stepIndex;
+            
+            // Оновити контент
+            document.getElementById('tutorialTitle').textContent = step.title;
+            document.getElementById('tutorialText').textContent = step.text;
+            document.getElementById('tutorialProgress').textContent = `${stepIndex + 1} / ${tutorialSteps.length}`;
+            
+            // Оновити кнопку
+            const nextBtn = document.getElementById('tutorialNextBtn');
+            if (stepIndex === tutorialSteps.length - 1) {
+                nextBtn.textContent = 'Зрозуміло! ✓';
+            } else {
+                nextBtn.textContent = 'Далі →';
+            }
+            
+            // Позиціонувати spotlight та tooltip
+            const overlay = document.getElementById('tutorialOverlay');
+            const spotlight = document.getElementById('tutorialSpotlight');
+            const content = document.getElementById('tutorialContent');
+            
+            if (step.element) {
+                const element = document.querySelector(step.element);
+                if (element) {
+                    const rect = element.getBoundingClientRect();
+                    
+                    // Spotlight
+                    spotlight.style.display = 'block';
+                    spotlight.style.left = (rect.left - 8) + 'px';
+                    spotlight.style.top = (rect.top - 8) + 'px';
+                    spotlight.style.width = (rect.width + 16) + 'px';
+                    spotlight.style.height = (rect.height + 16) + 'px';
+                    
+                    // Tooltip позиція
+                    if (step.position === 'bottom') {
+                        content.style.left = Math.max(20, Math.min(window.innerWidth - 340, rect.left)) + 'px';
+                        content.style.top = (rect.bottom + 20) + 'px';
+                        content.style.bottom = 'auto';
+                    } else if (step.position === 'top') {
+                        content.style.left = Math.max(20, Math.min(window.innerWidth - 340, rect.left)) + 'px';
+                        content.style.bottom = (window.innerHeight - rect.top + 20) + 'px';
+                        content.style.top = 'auto';
+                    }
+                } else {
+                    // Центр якщо елемент не знайдено
+                    spotlight.style.display = 'none';
+                    content.style.left = '50%';
+                    content.style.top = '50%';
+                    content.style.transform = 'translate(-50%, -50%)';
+                    content.style.bottom = 'auto';
+                }
+            } else {
+                // Центр для першого кроку
+                spotlight.style.display = 'none';
+                content.style.left = '50%';
+                content.style.top = '50%';
+                content.style.transform = 'translate(-50%, -50%)';
+                content.style.bottom = 'auto';
+            }
+            
+            hapticLight();
+        }
+        
+        function nextTutorialStep() {
+            hapticMedium();
+            showTutorialStep(currentTutorialStep + 1);
+        }
+        
+        function skipTutorial() {
+            hapticLight();
+            if (confirm('Ти впевнений? Tutorial допоможе швидше розібратись в грі!')) {
+                completeTutorial();
+            }
+        }
+        
+        function completeTutorial() {
+            document.getElementById('tutorialOverlay').style.display = 'none';
+            
+            // Зберегти що tutorial пройдено
+            const characterData = loadGameSync();
+            if (characterData && characterData.gameState) {
+                characterData.gameState.tutorialCompleted = true;
+                saveGameSync(characterData, true);
+            }
+            
+            showToast('✅ Готово!', 'Тепер ти готовий стати чемпіоном! 🏆', 'success');
+            hapticSuccess();
+        }
+        
+        // ===== END TUTORIAL SYSTEM =====
         
         // ===== END UI/UX UTILITIES =====
         
@@ -5313,6 +5459,11 @@ const BOXER_AVATARS = [
                 updateDailyBadge();
                 updateAchievementsBadge();
                 startInjuryTimer(); // Start injury timer update
+                
+                // ✅ Запустити tutorial для нових гравців
+                setTimeout(() => {
+                    startTutorial();
+                }, 500);
             }, 100);
             
             console.log('loadGameData completed');
@@ -11917,4 +12068,19 @@ function refreshMarket() {
 </script>
 
     <!-- TRAINING SCREEN -->
+    <!-- TUTORIAL OVERLAY -->
+    <div id="tutorialOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000;">
+        <div id="tutorialSpotlight" style="position: absolute; border: 3px solid var(--gold); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.85); pointer-events: none; transition: all 0.3s ease;"></div>
+        
+        <div id="tutorialContent" style="position: absolute; background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1a1a 100%); border: 2px solid var(--gold); border-radius: 16px; padding: 1.5rem; max-width: 320px; box-shadow: 0 8px 32px rgba(255,215,0,0.3); z-index: 10001;">
+            <div style="font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--gold); margin-bottom: 0.5rem; text-align: center;" id="tutorialTitle">👋 ВІТАЄМО!</div>
+            <div style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem; color: var(--canvas-white); opacity: 0.9;" id="tutorialText">Давай швидко покажу як тут все працює!</div>
+            <div style="display: flex; gap: 0.5rem; justify-content: space-between;">
+                <button onclick="skipTutorial()" style="flex: 1; padding: 0.8rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: var(--canvas-white); font-family: 'Oswald', sans-serif; font-size: 0.9rem; cursor: pointer;">Пропустити</button>
+                <button onclick="nextTutorialStep()" style="flex: 2; padding: 0.8rem; background: var(--gold); border: none; border-radius: 8px; color: #000; font-family: 'Oswald', sans-serif; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(255,215,0,0.4);" id="tutorialNextBtn">Далі →</button>
+            </div>
+            <div style="margin-top: 1rem; text-align: center; font-size: 0.8rem; opacity: 0.6;" id="tutorialProgress">1 / 5</div>
+        </div>
+    </div>
+
 <script src="js/game.js"></script></body></html>

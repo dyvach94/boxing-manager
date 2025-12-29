@@ -1,35 +1,24 @@
-# 🥊 Boxing Manager v1.5 HOTFIX
+# 🥊 Boxing Manager v1.6 POLISH
 
-## 🔥 v1.5 - Manager Data Fix
+## ✨ v1.6 - Tutorial + UX Improvements
 
-### Виправлено:
-- ✅ Завантаження даних менеджера (ім'я, місто, країна)
-- ✅ Гнучка валідація (дозволяє partial data)
-- ✅ Fallbacks для всіх полів
+### Нове:
+- ✅ **Interactive Tutorial** (5 кроків)
+- ✅ **Spotlight System** (підсвітка елементів)
+- ✅ **Smooth Onboarding** (для нових гравців)
 
-### Проблема була:
-```
-startGame() → save manager data
-confirmFighterSelection() → load data
-validateCharacterData() → ❌ REJECT (no fighters)
-Result: Uses fallback "Новий гравець", "Місто", "Країна"
-```
+### Tutorial Кроки:
+1. 👋 Вітання
+2. 👤 Показ бійця
+3. 💪 Показ тренування
+4. 🥊 Показ боїв
+5. 💎 Показ VIP бонусу
 
-### Рішення:
-```javascript
-// 1. Гнучка валідація
-if (!data.fighters && !data.name) {
-    return false; // Тільки якщо ВЗАГАЛІ порожні
-}
-// Дозволяємо partial data!
-
-// 2. Завантаження з fallbacks
-if (characterData) {
-    if (!characterData.name) characterData.name = 'Новий гравець';
-    if (!characterData.city) characterData.city = 'Місто';
-    if (!characterData.country) characterData.country = 'Країна';
-}
-```
+### Як працює:
+- Автоматично для нових гравців
+- Можна пропустити
+- Spotlight на важливі елементи
+- Зберігається прогрес
 
 ---
 
@@ -53,11 +42,29 @@ python3 -m http.server 8000
 - 💪 Training
 - 💎 VIP
 - 🏅 Achievements
-- 🛡️ **Data protection**
-- 📝 **Manager profile**
+- 🛡️ Data protection
+- 📝 Manager profile
+- **✨ Interactive tutorial**
+
+---
+
+## 📊 Changelog
+
+### v1.6 (30.12.2024)
+- ✅ Interactive tutorial
+- ✅ Spotlight system
+- ✅ Better onboarding
+
+### v1.5
+- ✅ Manager data fix
+- ✅ Flexible validation
 
 ---
 
 ## 📝 License
 
 MIT License
+
+---
+
+**⭐ NEW PLAYER FRIENDLY - EASY TO START!**
