@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Boxing Manager v1.7</title>
+    <title>Boxing Manager v1.8</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -17,7 +17,7 @@
             </div>
             <div class="loading-text">ЗАВАНТАЖЕННЯ...</div>
             <div style="position: absolute; bottom: 20px; width: 100%; text-align: center; color: var(--gold); font-size: 0.8rem; opacity: 0.6;">
-                1.7 CONTENT - More Tournaments
+                1.8 ACHIEVEMENTS - 50+ Achievements
             </div>
         </div>
     </div>
@@ -3104,6 +3104,358 @@ const BOXER_AVATARS = [
                 category: 'Особливе',
                 reward: { type: 'cash', amount: 3000 },
                 check: (data) => data.gameState.vipUntil && data.gameState.vipUntil > Date.now()
+            },
+            
+            // ✨ НОВІ ДОСЯГНЕННЯ ✨
+            
+            // СЕРІЇ ПЕРЕМОГ
+            wins_100: {
+                id: 'wins_100',
+                name: 'Легенда',
+                description: 'Виграй 100 боїв',
+                icon: '🏆',
+                category: 'Бої',
+                reward: { type: 'stars', amount: 25 },
+                check: (data) => data.gameState.totalWins >= 100
+            },
+            wins_250: {
+                id: 'wins_250',
+                name: 'Непереможний',
+                description: 'Виграй 250 боїв',
+                icon: '👑',
+                category: 'Бої',
+                reward: { type: 'stars', amount: 50 },
+                check: (data) => data.gameState.totalWins >= 250
+            },
+            wins_500: {
+                id: 'wins_500',
+                name: 'Бог Рингу',
+                description: 'Виграй 500 боїв',
+                icon: '⚡',
+                category: 'Бої',
+                reward: { type: 'stars', amount: 100 },
+                check: (data) => data.gameState.totalWins >= 500
+            },
+            
+            // WIN STREAK
+            streak_5: {
+                id: 'streak_5',
+                name: 'На хвилі',
+                description: 'Виграй 5 боїв підряд',
+                icon: '🔥',
+                category: 'Бої',
+                reward: { type: 'cash', amount: 2500 },
+                check: (data) => (data.gameState.winStreak || 0) >= 5
+            },
+            streak_10: {
+                id: 'streak_10',
+                name: 'Невпинний',
+                description: 'Виграй 10 боїв підряд',
+                icon: '🌟',
+                category: 'Бої',
+                reward: { type: 'stars', amount: 10 },
+                check: (data) => (data.gameState.winStreak || 0) >= 10
+            },
+            streak_25: {
+                id: 'streak_25',
+                name: 'Нестримна сила',
+                description: 'Виграй 25 боїв підряд',
+                icon: '💫',
+                category: 'Бої',
+                reward: { type: 'stars', amount: 25 },
+                check: (data) => (data.gameState.winStreak || 0) >= 25
+            },
+            
+            // НОКАУТИ
+            ko_10: {
+                id: 'ko_10',
+                name: 'Нокаутер',
+                description: 'Зроби 10 нокаутів',
+                icon: '💥',
+                category: 'Бої',
+                reward: { type: 'cash', amount: 3000 },
+                check: (data) => (data.gameState.knockouts || 0) >= 10
+            },
+            ko_25: {
+                id: 'ko_25',
+                name: 'Залізний кулак',
+                description: 'Зроби 25 нокаутів',
+                icon: '🥊',
+                category: 'Бої',
+                reward: { type: 'stars', amount: 15 },
+                check: (data) => (data.gameState.knockouts || 0) >= 25
+            },
+            ko_50: {
+                id: 'ko_50',
+                name: 'Нищівник',
+                description: 'Зроби 50 нокаутів',
+                icon: '💣',
+                category: 'Бої',
+                reward: { type: 'stars', amount: 30 },
+                check: (data) => (data.gameState.knockouts || 0) >= 50
+            },
+            ko_100: {
+                id: 'ko_100',
+                name: 'Машина смерті',
+                description: 'Зроби 100 нокаутів',
+                icon: '☠️',
+                category: 'Бої',
+                reward: { type: 'stars', amount: 50 },
+                check: (data) => (data.gameState.knockouts || 0) >= 100
+            },
+            
+            // ГРОШІ
+            cash_10k: {
+                id: 'cash_10k',
+                name: 'Багатій',
+                description: 'Накопич $10,000',
+                icon: '💰',
+                category: 'Гроші',
+                reward: { type: 'stars', amount: 5 },
+                check: (data) => data.gameState.cash >= 10000
+            },
+            cash_50k: {
+                id: 'cash_50k',
+                name: 'Мільйонер (майже)',
+                description: 'Накопич $50,000',
+                icon: '💵',
+                category: 'Гроші',
+                reward: { type: 'stars', amount: 10 },
+                check: (data) => data.gameState.cash >= 50000
+            },
+            cash_100k: {
+                id: 'cash_100k',
+                name: 'Мільйонер',
+                description: 'Накопич $100,000',
+                icon: '💸',
+                category: 'Гроші',
+                reward: { type: 'stars', amount: 25 },
+                check: (data) => data.gameState.cash >= 100000
+            },
+            cash_500k: {
+                id: 'cash_500k',
+                name: 'Магнат',
+                description: 'Накопич $500,000',
+                icon: '🏦',
+                category: 'Гроші',
+                reward: { type: 'stars', amount: 50 },
+                check: (data) => data.gameState.cash >= 500000
+            },
+            
+            // РЕЙТИНГ
+            rating_100: {
+                id: 'rating_100',
+                name: 'Помітний',
+                description: 'Досягни 100 рейтингу',
+                icon: '📊',
+                category: 'Рейтинг',
+                reward: { type: 'cash', amount: 2000 },
+                check: (data) => data.fighters.some(f => f.gameData.rating >= 100)
+            },
+            rating_300: {
+                id: 'rating_300',
+                name: 'Топ-боєць',
+                description: 'Досягни 300 рейтингу',
+                icon: '⭐',
+                category: 'Рейтинг',
+                reward: { type: 'stars', amount: 10 },
+                check: (data) => data.fighters.some(f => f.gameData.rating >= 300)
+            },
+            rating_500: {
+                id: 'rating_500',
+                name: 'Еліта',
+                description: 'Досягни 500 рейтингу',
+                icon: '💫',
+                category: 'Рейтинг',
+                reward: { type: 'stars', amount: 25 },
+                check: (data) => data.fighters.some(f => f.gameData.rating >= 500)
+            },
+            rating_1000: {
+                id: 'rating_1000',
+                name: 'Чемпіон світу',
+                description: 'Досягни 1000 рейтингу',
+                icon: '🌍',
+                category: 'Рейтинг',
+                reward: { type: 'stars', amount: 100 },
+                check: (data) => data.fighters.some(f => f.gameData.rating >= 1000)
+            },
+            
+            // ТУРНІРИ
+            tournament_first: {
+                id: 'tournament_first',
+                name: 'Учасник',
+                description: 'Вступи в перший турнір',
+                icon: '🎫',
+                category: 'Турніри',
+                reward: { type: 'cash', amount: 1000 },
+                check: (data) => (data.gameState.tournaments?.stats?.played || 0) >= 1
+            },
+            tournament_win: {
+                id: 'tournament_win',
+                name: 'Переможець турніру',
+                description: 'Виграй свій перший турнір',
+                icon: '🏆',
+                category: 'Турніри',
+                reward: { type: 'stars', amount: 10 },
+                check: (data) => (data.gameState.tournaments?.stats?.won || 0) >= 1
+            },
+            tournament_5: {
+                id: 'tournament_5',
+                name: 'Майстер турнірів',
+                description: 'Виграй 5 турнірів',
+                icon: '🎖️',
+                category: 'Турніри',
+                reward: { type: 'stars', amount: 25 },
+                check: (data) => (data.gameState.tournaments?.stats?.won || 0) >= 5
+            },
+            tournament_10: {
+                id: 'tournament_10',
+                name: 'Легенда турнірів',
+                description: 'Виграй 10 турнірів',
+                icon: '👑',
+                category: 'Турніри',
+                reward: { type: 'stars', amount: 50 },
+                check: (data) => (data.gameState.tournaments?.stats?.won || 0) >= 10
+            },
+            
+            // ТРЕНУВАННЯ
+            trainings_50: {
+                id: 'trainings_50',
+                name: 'Фанатик тренувань',
+                description: 'Завершити 50 тренувань',
+                icon: '🏋️',
+                category: 'Тренування',
+                reward: { type: 'stars', amount: 10 },
+                check: (data) => (data.gameState.totalTrainings || 0) >= 50
+            },
+            trainings_100: {
+                id: 'trainings_100',
+                name: 'Машина тренувань',
+                description: 'Завершити 100 тренувань',
+                icon: '💪',
+                category: 'Тренування',
+                reward: { type: 'stars', amount: 25 },
+                check: (data) => (data.gameState.totalTrainings || 0) >= 100
+            },
+            trainings_250: {
+                id: 'trainings_250',
+                name: 'Тренувальний титан',
+                description: 'Завершити 250 тренувань',
+                icon: '⚡',
+                category: 'Тренування',
+                reward: { type: 'stars', amount: 50 },
+                check: (data) => (data.gameState.totalTrainings || 0) >= 250
+            },
+            
+            // STATS
+            stat_100: {
+                id: 'stat_100',
+                name: 'Сотня',
+                description: 'Досягни 100 в будь-якому статі',
+                icon: '💯',
+                category: 'Розвиток',
+                reward: { type: 'stars', amount: 15 },
+                check: (data) => {
+                    return data.fighters.some(f => 
+                        f.stats.power >= 100 || f.stats.speed >= 100 || 
+                        f.stats.stamina >= 100 || f.stats.defense >= 100
+                    );
+                }
+            },
+            all_stats_50: {
+                id: 'all_stats_50',
+                name: 'Універсал',
+                description: 'Досягни 50 у всіх статах',
+                icon: '⚖️',
+                category: 'Розвиток',
+                reward: { type: 'stars', amount: 20 },
+                check: (data) => {
+                    return data.fighters.some(f => 
+                        f.stats.power >= 50 && f.stats.speed >= 50 && 
+                        f.stats.stamina >= 50 && f.stats.defense >= 50
+                    );
+                }
+            },
+            all_stats_100: {
+                id: 'all_stats_100',
+                name: 'Ідеальний боєць',
+                description: 'Досягни 100 у всіх статах',
+                icon: '🌟',
+                category: 'Розвиток',
+                reward: { type: 'stars', amount: 100 },
+                check: (data) => {
+                    return data.fighters.some(f => 
+                        f.stats.power >= 100 && f.stats.speed >= 100 && 
+                        f.stats.stamina >= 100 && f.stats.defense >= 100
+                    );
+                }
+            },
+            
+            // КОМАНДА
+            team_first: {
+                id: 'team_first',
+                name: 'Перший найм',
+                description: 'Найми першого члена команди',
+                icon: '👥',
+                category: 'Команда',
+                reward: { type: 'cash', amount: 1000 },
+                check: (data) => Object.keys(data.team?.members || {}).length >= 1
+            },
+            team_5: {
+                id: 'team_5',
+                name: 'Мала команда',
+                description: 'Набери 5 членів команди',
+                icon: '👨‍👩‍👧‍👦',
+                category: 'Команда',
+                reward: { type: 'stars', amount: 5 },
+                check: (data) => Object.keys(data.team?.members || {}).length >= 5
+            },
+            team_10: {
+                id: 'team_10',
+                name: 'Професійна команда',
+                description: 'Набери 10 членів команди',
+                icon: '👨‍👩‍👧‍👦',
+                category: 'Команда',
+                reward: { type: 'stars', amount: 15 },
+                check: (data) => Object.keys(data.team?.members || {}).length >= 10
+            },
+            team_full: {
+                id: 'team_full',
+                name: 'Повна команда',
+                description: 'Найми всю команду (18 людей)',
+                icon: '🎖️',
+                category: 'Команда',
+                reward: { type: 'stars', amount: 50 },
+                check: (data) => Object.keys(data.team?.members || {}).length >= 18
+            },
+            
+            // СПЕЦІАЛЬНІ
+            daily_30: {
+                id: 'daily_30',
+                name: 'Місячна відданість',
+                description: 'Отримай щоденні нагороди 30 днів підряд',
+                icon: '📅',
+                category: 'Особливе',
+                reward: { type: 'stars', amount: 50 },
+                check: (data) => (data.gameState.dailyRewards?.streak || 0) >= 30
+            },
+            stars_100: {
+                id: 'stars_100',
+                name: 'Зоряний',
+                description: 'Накопич 100 зірок',
+                icon: '⭐',
+                category: 'Особливе',
+                reward: { type: 'cash', amount: 10000 },
+                check: (data) => (data.gameState.stars || 0) >= 100
+            },
+            stars_500: {
+                id: 'stars_500',
+                name: 'Галактика',
+                description: 'Накопич 500 зірок',
+                icon: '🌌',
+                category: 'Особливе',
+                reward: { type: 'cash', amount: 50000 },
+                check: (data) => (data.gameState.stars || 0) >= 500
             }
         };
         
@@ -3649,6 +4001,17 @@ const BOXER_AVATARS = [
                     const canEnter = !onCooldown && rating >= t.minRating && rating <= t.maxRating && cash >= t.entryFee;
                     const reason = onCooldown ? `Зачекай ${hoursLeft} год` : rating < t.minRating ? 'Низький рейтинг' : rating > t.maxRating ? 'Високий рейтинг' : cash < t.entryFee ? 'Недостатньо грошей' : '';
                     
+                    // DEBUG
+                    console.log(`Tournament ${t.name}:`, {
+                        rating,
+                        minRating: t.minRating,
+                        maxRating: t.maxRating,
+                        cash,
+                        entryFee: t.entryFee,
+                        onCooldown,
+                        canEnter
+                    });
+                    
                     return `
                         <div style="background: rgba(255,255,255,0.05); border: 2px solid ${canEnter ? 'var(--gold)' : 'rgba(255,255,255,0.1)'}; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; ${onCooldown ? 'opacity: 0.6;' : ''}">
                             <h3 style="margin: 0 0 0.5rem 0; font-size: 1.2rem; color: ${canEnter ? 'var(--gold)' : 'white'};">${t.name}</h3>
@@ -3659,7 +4022,12 @@ const BOXER_AVATARS = [
                                 <div>🎫 Внесок: $${t.entryFee.toLocaleString()}</div>
                                 <div>⭐ +${t.stars || 0} зірок</div>
                             </div>
-                            <div style="font-size: 0.8rem; opacity: 0.6; margin-bottom: 0.5rem;">Рейтинг: ${t.minRating}-${t.maxRating}</div>
+                            <div style="font-size: 0.8rem; opacity: 0.6; margin-bottom: 0.5rem;">
+                                Рейтинг: ${t.minRating}-${t.maxRating}
+                                <span style="color: ${rating >= t.minRating && rating <= t.maxRating ? '#51cf66' : '#ff6b6b'};">
+                                    (Твій: ${rating})
+                                </span>
+                            </div>
                             <button onclick="enterTournament('${t.name}')" ${!canEnter ? 'disabled' : ''} style="width: 100%; padding: 0.75rem; background: ${canEnter ? 'var(--gold)' : 'rgba(255,255,255,0.1)'}; color: ${canEnter ? '#1a1a2e' : 'rgba(255,255,255,0.3)'}; border: none; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: ${canEnter ? 'pointer' : 'not-allowed'}; transition: all 0.3s;">
                                 ${canEnter ? '⚡ ВСТУПИТИ' : `🔒 ${reason}`}
                             </button>
@@ -3683,11 +4051,27 @@ const BOXER_AVATARS = [
         function enterTournament(tournamentName) {
             const data = loadGameSync();
             const fighter = data.fighters[data.activeFighterIndex];
+            
+            // ✅ ПОВНИЙ СПИСОК ТУРНІРІВ (з емодзі!)
             const tournaments = [
-                { name: "Новачки", minRating: 0, maxRating: 150, participants: 8, prize: 5000, entryFee: 500 },
-                { name: "Професіонали", minRating: 100, maxRating: 400, participants: 8, prize: 15000, entryFee: 2000 },
-                { name: "Чемпіонат", minRating: 300, maxRating: 999, participants: 8, prize: 50000, entryFee: 5000 }
+                // БАЗОВІ
+                { name: "🥉 Новачки", minRating: 0, maxRating: 150, participants: 8, prize: 5000, entryFee: 500, stars: 10 },
+                { name: "🥈 Професіонали", minRating: 100, maxRating: 400, participants: 8, prize: 15000, entryFee: 2000, stars: 25 },
+                { name: "🥇 Чемпіонат", minRating: 300, maxRating: 999, participants: 8, prize: 50000, entryFee: 5000, stars: 50 },
+                // ВАГОВІ
+                { name: "🪶 Легка вага", minRating: 50, maxRating: 300, participants: 8, prize: 20000, entryFee: 1500, stars: 20 },
+                { name: "⚖️ Середня вага", minRating: 150, maxRating: 500, participants: 8, prize: 30000, entryFee: 3000, stars: 30 },
+                { name: "🦍 Важка вага", minRating: 250, maxRating: 999, participants: 8, prize: 45000, entryFee: 4000, stars: 40 },
+                // РЕГІОНАЛЬНІ
+                { name: "🇪🇺 Кубок Європи", minRating: 200, maxRating: 600, participants: 8, prize: 35000, entryFee: 3500, stars: 35 },
+                { name: "🇺🇸 USA Championship", minRating: 300, maxRating: 700, participants: 8, prize: 55000, entryFee: 5500, stars: 55 },
+                { name: "🌏 Чемпіонат Азії", minRating: 250, maxRating: 650, participants: 8, prize: 40000, entryFee: 4000, stars: 45 },
+                // ЕЛІТНІ
+                { name: "👑 Турнір Чемпіонів", minRating: 500, maxRating: 999, participants: 8, prize: 100000, entryFee: 10000, stars: 100 },
+                { name: "💎 Елітний кубок", minRating: 400, maxRating: 999, participants: 8, prize: 75000, entryFee: 7500, stars: 75 },
+                { name: "🔥 Grand Prix", minRating: 350, maxRating: 999, participants: 8, prize: 65000, entryFee: 6000, stars: 65 }
             ];
+            
             const tournament = tournaments.find(t => t.name === tournamentName);
             
             // Перевірка кулдауна (24 години)
