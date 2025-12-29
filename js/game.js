@@ -358,6 +358,32 @@ const BOXER_AVATARS = [
         tg.expand();
         tg.enableClosingConfirmation();
         
+        // ✅ FORCE MOBILE VIEWPORT
+        function forceMobileViewport() {
+            // Видаляємо старий viewport якщо є
+            const existingViewport = document.querySelector('meta[name="viewport"]');
+            if (existingViewport) {
+                existingViewport.remove();
+            }
+            
+            // Додаємо правильний viewport
+            const viewport = document.createElement('meta');
+            viewport.name = 'viewport';
+            viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+            document.head.appendChild(viewport);
+            
+            // Форсуємо мобільний layout
+            document.documentElement.style.width = '100vw';
+            document.documentElement.style.maxWidth = '100vw';
+            document.documentElement.style.overflowX = 'hidden';
+            document.body.style.width = '100vw';
+            document.body.style.maxWidth = '100vw';
+            
+            console.log('📱 Mobile viewport forced!');
+        }
+        
+        forceMobileViewport();
+        
         // Set theme
         document.body.style.backgroundColor = tg.themeParams.bg_color || '#0a0a0a';
         
