@@ -1,27 +1,12 @@
 # 🚀 Швидкий Старт
 
-## Крок 1: Тестування
+## ⚡ Для GitHub (з Git LFS)
 
-```bash
-cd boxing-manager
-python3 -m http.server 8000
-```
-
-Відкрий: http://localhost:8000
-
-**Має працювати!** ✅
-
----
-
-## Крок 2: GitHub
-
-### Встанови Git + Git LFS:
+### 1. Встанови Git + Git LFS
 
 **Windows:**
-```
-Git: https://git-scm.com/download/win
-Git LFS: https://git-lfs.github.com/
-```
+- Git: https://git-scm.com/download/win
+- Git LFS: https://git-lfs.github.com/
 
 **Mac:**
 ```bash
@@ -41,20 +26,39 @@ git lfs version
 
 ---
 
-## Крок 3: Створи репозиторій
+### 2. Розпакуй архів
 
-1. GitHub → New repository
-2. Назва: `boxing-manager`
-3. Public
-4. Create
+```bash
+tar -xzf boxing-manager-0.94.tar.gz
+cd boxing-manager-0.94
+```
 
 ---
 
-## Крок 4: Git LFS + Push
+### 3. Тестуй локально
 
 ```bash
-cd boxing-manager
+python3 -m http.server 8000
+```
 
+Відкрий: http://localhost:8000
+
+**Перевір що працює!** ✅
+
+---
+
+### 4. Створи репозиторій на GitHub
+
+1. https://github.com → New repository
+2. Назва: `boxing-manager`
+3. Public
+4. Create (БЕЗ README!)
+
+---
+
+### 5. Git LFS + Push
+
+```bash
 # Init
 git init
 git lfs install
@@ -65,7 +69,7 @@ git add .gitattributes
 
 # Commit
 git add .
-git commit -m "v0.91: Initial commit"
+git commit -m "v0.94: Critical bug fix"
 
 # Push
 git remote add origin https://github.com/YOUR_USERNAME/boxing-manager.git
@@ -73,18 +77,13 @@ git branch -M main
 git push -u origin main
 ```
 
-**Якщо попросить пароль:**  
-Використай Personal Access Token замість пароля!
-
-GitHub → Settings → Developer settings → Tokens → Generate
+**При запиті пароля:** Використай Personal Access Token!
 
 ---
 
-## Крок 5: GitHub Pages
+### 6. GitHub Pages
 
-1. Settings → Pages
-2. Source: main / (root)
-3. Save
+Settings → Pages → Source: main / (root) → Save
 
 Гра буде на:
 ```
@@ -95,33 +94,26 @@ https://YOUR_USERNAME.github.io/boxing-manager/
 
 ## ✅ Готово!
 
-**Гра на GitHub!** 🎉
-
 ---
 
-## 🐛 Якщо щось не так:
+## 🐛 Troubleshooting
 
 ### Git LFS не встановлюється:
-```
-Використай online minifier для js/game.js
-Зменшить до ~500 KB
-Тоді Git LFS не потрібен
-```
+- Використай online minifier для `js/game.js`
+- Зменшить до ~500 KB
+- Тоді Git LFS не потрібен
 
 ### Permission denied:
-```
-Використовуй Personal Access Token,
-не пароль GitHub!
-```
+- Використовуй Personal Access Token
+- GitHub → Settings → Developer settings → Tokens
 
-### Гра не працює на GitHub Pages:
+### Гра зависає:
 ```
-Переконайся що всі файли завантажились:
-- index.html
-- css/styles.css
-- js/game.js
+F12 → Console:
+localStorage.clear()
+location.reload()
 ```
 
 ---
 
-**Все має працювати!** ✅
+**v0.94 виправляє CRITICAL баг - обов'язково оновись!** 🔥

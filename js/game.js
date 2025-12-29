@@ -2641,6 +2641,9 @@ const BOXER_AVATARS = [
             pendingFightOpponent = opponent;
             selectedFighterForFight = realFighter;
             
+            // Запам'ятовуємо що прийшли з головного екрану
+            previousScreen = 'gameScreen';
+            
             console.log('✅ Opening tactics modal...');
             
             // Show tactics modal
@@ -2648,6 +2651,7 @@ const BOXER_AVATARS = [
         }
         
         let currentTournamentMatch = null;
+        let previousScreen = null; // Зберігає екран з якого прийшли на бій
         
         function checkRoundComplete() {
             const data = loadGameSync();
@@ -7476,6 +7480,10 @@ function getSponsorBonus(fighter) {
             
             // Store opponent and show tactics modal
             pendingFightOpponent = opponent;
+            
+            // Запам'ятовуємо що прийшли з екрану боїв (кар'єра)
+            previousScreen = 'fightsScreen';
+            
             showTacticsModal();
         }
         
@@ -8909,6 +8917,10 @@ function getSponsorBonus(fighter) {
                 fighter.fightHistory = fighter.fightHistory.slice(-50);
             }
             
+            // ✅ ІНІЦІАЛІЗУЄМО TEAM BONUSES СПОЧАТКУ!
+            initializeTeam(characterData);
+            const teamBonuses = getTeamBonuses(characterData);
+            
             // Set cooldown (2 ГОДИНИ!)
             if (!fighter.fightCooldown) fighter.fightCooldown = {};
             let cooldownTime = 2 * 60 * 60 * 1000; // 2 години базово
@@ -8936,8 +8948,7 @@ function getSponsorBonus(fighter) {
             }
             
             // ЗМІНА ФОРМИ ПІСЛЯ БОЮ!
-            initializeTeam(characterData);
-            const teamBonuses = getTeamBonuses(characterData);
+            // (teamBonuses вже ініціалізовано вище!)
             
             let formDrop = 2; // Базове падіння форми після бою
             
@@ -9136,9 +9147,21 @@ function getSponsorBonus(fighter) {
                 return;
             }
             
-            // Normal fight - go back to MAIN game screen
-            showScreen('gameScreen');
-            loadGameScreen();
+            // Визначаємо куди повертатись
+            if (previousScreen === 'fightsScreen') {
+                // Прийшли з кар'єри - повертаємось в кар'єру
+                console.log('→ Повертаємось на fightsScreen (кар\'єра)');
+                showScreen('fightsScreen');
+                loadFightsScreen();
+            } else {
+                // Прийшли з головного екрану - повертаємось на головний
+                console.log('→ Повертаємось на gameScreen (головний)');
+                showScreen('gameScreen');
+                loadGameScreen();
+            }
+            
+            // Скидаємо previousScreen
+            previousScreen = null;
             
             // Check for random event after fight
             triggerRandomEventCheck();
