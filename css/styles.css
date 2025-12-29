@@ -1920,7 +1920,7 @@
         }
         
         #fightResultDisplay.show {
-            display: block !important;
+            display: flex !important; /* ✅ ВИПРАВЛЕНО: flex замість block! */
         }
         
         .result-icon {
