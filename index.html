@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Boxing Manager v1.9</title>
+    <title>Boxing Manager v2.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -17,7 +17,7 @@
             </div>
             <div class="loading-text">ЗАВАНТАЖЕННЯ...</div>
             <div style="position: absolute; bottom: 20px; width: 100%; text-align: center; color: var(--gold); font-size: 0.8rem; opacity: 0.6;">
-                1.9 LEGENDARY - Legendary Fighters
+                2.0 STATS - Statistics Screen
             </div>
         </div>
     </div>
@@ -316,6 +316,10 @@
                     <div class="manager-stat-box clickable" onclick="hapticMedium(); openAchievements()">
                         <div class="manager-stat-label">Досягнення</div>
                         <div class="manager-stat-value" id="achievementsCount">0/20</div>
+                    </div>
+                    <div class="manager-stat-box clickable" onclick="hapticMedium(); openStatistics()">
+                        <div class="manager-stat-label">📊 Статистика</div>
+                        <div class="manager-stat-value">Переглянути</div>
                     </div>
                 </div>
             </div>
@@ -701,6 +705,20 @@
         
         <div class="achievements-content" id="achievementsContent">
             <!-- Achievements will be generated here -->
+        </div>
+    </div>
+
+    <!-- STATISTICS SCREEN -->
+    <div id="statisticsScreen" class="screen">
+        <button class="back-button" onclick="backToGame()">←</button>
+        
+        <div class="achievements-header">
+            <div class="achievements-title">📊 Статистика</div>
+            <div class="achievements-subtitle">Твій прогрес та досягнення</div>
+        </div>
+        
+        <div style="padding: 1rem; padding-bottom: 100px;" id="statisticsContent">
+            <!-- Statistics will be generated here -->
         </div>
     </div>
 
@@ -1753,6 +1771,23 @@ const BOXER_AVATARS = [
         
         // Синхронна версія для сумісності (використовує localStorage як кеш)
         // OPTIMIZED: Save with cache and debounce
+        // ===== MONEY TRACKING HELPERS =====
+        function addMoney(gameState, amount, source = 'unknown') {
+            if (!gameState) return;
+            gameState.cash = (gameState.cash || 0) + amount;
+            gameState.totalEarned = (gameState.totalEarned || 0) + amount;
+            console.log(`💰 +$${amount} from ${source}`);
+        }
+        
+        function removeMoney(gameState, amount, reason = 'unknown') {
+            if (!gameState) return;
+            gameState.cash = (gameState.cash || 0) - amount;
+            gameState.totalSpent = (gameState.totalSpent || 0) + amount;
+            console.log(`💸 -$${amount} for ${reason}`);
+        }
+        
+        // ===== SAVE/LOAD SYSTEM =====
+        
         function saveGameSync(characterData, immediate = false) {
             // Перевірка чи дані змінились
             if (!immediate && !shouldSave(characterData)) {
@@ -3941,6 +3976,198 @@ const BOXER_AVATARS = [
         function openAchievements() {
             showScreen('achievementsScreen');
             loadAchievements();
+        }
+        
+        function openStatistics() {
+            showScreen('statisticsScreen');
+            loadStatistics();
+        }
+        
+        function loadStatistics() {
+            const data = loadGameSync();
+            if (!data) return;
+            
+            const gameState = data.gameState;
+            const fighters = data.fighters || [];
+            const activeFighter = fighters[data.activeFighterIndex] || {};
+            
+            // Підрахунок статистики
+            const totalWins = gameState.totalWins || 0;
+            const totalLosses = gameState.totalLosses || 0;
+            const totalFights = totalWins + totalLosses;
+            const winRate = totalFights > 0 ? ((totalWins / totalFights) * 100).toFixed(1) : 0;
+            const knockouts = gameState.knockouts || 0;
+            const koRate = totalWins > 0 ? ((knockouts / totalWins) * 100).toFixed(1) : 0;
+            const winStreak = gameState.winStreak || 0;
+            const maxStreak = gameState.maxStreak || 0;
+            const totalEarned = gameState.totalEarned || 0;
+            const totalSpent = gameState.totalSpent || 0;
+            const netIncome = totalEarned - totalSpent;
+            
+            // Турніри
+            const tournamentsPlayed = gameState.tournaments?.stats?.played || 0;
+            const tournamentsWon = gameState.tournaments?.stats?.won || 0;
+            const tournamentWinRate = tournamentsPlayed > 0 ? ((tournamentsWon / tournamentsPlayed) * 100).toFixed(1) : 0;
+            
+            // Тренування
+            const totalTrainings = gameState.totalTrainings || 0;
+            
+            // Легендарні бійці
+            const legendaryCount = fighters.filter(f => f.isLegendary).length;
+            
+            // Досягнення
+            const unlockedAchievements = Object.keys(gameState.unlockedAchievements || {}).length;
+            const totalAchievements = Object.keys(ACHIEVEMENTS).length;
+            
+            // ТОП-5 бійців
+            const topFighters = [...fighters]
+                .sort((a, b) => (b.gameData?.rating || 0) - (a.gameData?.rating || 0))
+                .slice(0, 5);
+            
+            const content = document.getElementById('statisticsContent');
+            content.innerHTML = `
+                <!-- ЗАГАЛЬНА СТАТИСТИКА -->
+                <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--gold); font-size: 1.1rem;">📊 ЗАГАЛЬНА СТАТИСТИКА</h3>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div style="background: rgba(100,200,255,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(100,200,255,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Всього боїв</div>
+                            <div style="font-size: 1.5rem; font-weight: 700;">${totalFights}</div>
+                        </div>
+                        
+                        <div style="background: rgba(100,255,100,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(100,255,100,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Win Rate</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #51cf66;">${winRate}%</div>
+                        </div>
+                        
+                        <div style="background: rgba(255,100,100,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,100,100,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Нокаутів</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #ff6b6b;">${knockouts}</div>
+                        </div>
+                        
+                        <div style="background: rgba(255,200,100,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,200,100,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">KO Rate</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #ffa94d;">${koRate}%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- СЕРІЇ -->
+                <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--gold); font-size: 1.1rem;">🔥 СЕРІЇ</h3>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div style="background: rgba(255,215,0,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,215,0,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Поточна серія</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--gold);">${winStreak}</div>
+                        </div>
+                        
+                        <div style="background: rgba(255,100,255,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,100,255,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Рекорд серії</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #e599f7;">${maxStreak}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ФІНАНСИ -->
+                <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--gold); font-size: 1.1rem;">💰 ФІНАНСИ</h3>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 0.75rem;">
+                        <div style="background: rgba(100,255,100,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(100,255,100,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Зароблено всього</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: #51cf66;">$${totalEarned.toLocaleString()}</div>
+                        </div>
+                        
+                        <div style="background: rgba(255,100,100,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,100,100,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Витрачено всього</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: #ff6b6b;">$${totalSpent.toLocaleString()}</div>
+                        </div>
+                        
+                        <div style="background: rgba(100,200,255,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(100,200,255,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Чистий прибуток</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: ${netIncome >= 0 ? '#51cf66' : '#ff6b6b'};">$${netIncome.toLocaleString()}</div>
+                        </div>
+                        
+                        <div style="background: rgba(255,215,0,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,215,0,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Поточний баланс</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: var(--gold);">$${gameState.cash.toLocaleString()}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ТУРНІРИ -->
+                <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--gold); font-size: 1.1rem;">🏆 ТУРНІРИ</h3>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+                        <div style="background: rgba(100,200,255,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(100,200,255,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Зіграно</div>
+                            <div style="font-size: 1.3rem; font-weight: 700;">${tournamentsPlayed}</div>
+                        </div>
+                        
+                        <div style="background: rgba(100,255,100,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(100,255,100,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Виграно</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: #51cf66;">${tournamentsWon}</div>
+                        </div>
+                        
+                        <div style="background: rgba(255,215,0,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,215,0,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Win Rate</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: var(--gold);">${tournamentWinRate}%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ІНШЕ -->
+                <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--gold); font-size: 1.1rem;">📈 РОЗВИТОК</h3>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div style="background: rgba(255,100,255,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,100,255,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Тренувань</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: #e599f7;">${totalTrainings}</div>
+                        </div>
+                        
+                        <div style="background: rgba(100,255,200,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(100,255,200,0.2);">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">Досягнень</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: #51cf66;">${unlockedAchievements}/${totalAchievements}</div>
+                        </div>
+                        
+                        <div style="background: rgba(255,215,0,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,215,0,0.2); grid-column: span 2;">
+                            <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.25rem;">⭐ Легендарних бійців</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: var(--gold);">${legendaryCount}/8</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ТОП-5 БІЙЦІВ -->
+                ${topFighters.length > 0 ? `
+                <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1rem;">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--gold); font-size: 1.1rem;">👑 МОЇ ТОП-5 БІЙЦІВ</h3>
+                    
+                    ${topFighters.map((f, idx) => {
+                        const rating = f.gameData?.rating || 0;
+                        const record = `${f.gameData?.wins || 0}-${f.gameData?.losses || 0}`;
+                        const isLegendary = f.isLegendary;
+                        
+                        return `
+                        <div style="background: ${isLegendary ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.03)'}; padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid ${isLegendary ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.1)'}; display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: ${idx === 0 ? 'var(--gold)' : idx === 1 ? '#c0c0c0' : idx === 2 ? '#cd7f32' : 'rgba(255,255,255,0.5)'}; min-width: 30px;">
+                                ${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1)}
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 700; color: ${isLegendary ? 'var(--gold)' : 'white'};">
+                                    ${isLegendary ? '⭐ ' : ''}${f.firstName} "${f.nickname}" ${f.lastName}
+                                </div>
+                                <div style="font-size: 0.85rem; opacity: 0.7;">Рекорд: ${record} • Рейтинг: ${rating}</div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
+                ` : ''}
+            `;
         }
         
         function openCareer() {
@@ -10708,6 +10935,11 @@ function getSponsorBonus(fighter) {
                 
                 // Track win streak
                 gameState.winStreak = (gameState.winStreak || 0) + 1;
+                
+                // Track max streak
+                if (!gameState.maxStreak || gameState.winStreak > gameState.maxStreak) {
+                    gameState.maxStreak = gameState.winStreak;
+                }
                 
                 if (!fighter.gameData) fighter.gameData = {};
                 if (!fighter.gameData.record) {
