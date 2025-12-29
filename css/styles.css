@@ -1,0 +1,4009 @@
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --blood-red: #8B0000;
+            --ring-red: #C41E3A;
+            --gold: #FFD700;
+            --dark-bg: #0a0a0a;
+            --canvas-white: #F5F5DC;
+            --rope-blue: #1E3A8A;
+            --steel: #4A5568;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Oswald', sans-serif;
+            background: var(--dark-bg);
+            color: var(--canvas-white);
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+        
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0,0,0,.03) 2px,
+                    rgba(0,0,0,.03) 4px
+                );
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.3;
+        }
+        
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* LOADING SCREEN */
+        #loadingScreen {
+            justify-content: center;
+            align-items: center;
+            background: var(--dark-bg);
+        }
+        
+        .loading-content {
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .game-logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(2rem, 8vw, 3rem);
+            letter-spacing: 0.2rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            color: var(--canvas-white);
+        }
+        
+        .game-subtitle {
+            font-size: clamp(0.8rem, 3vw, 1rem);
+            letter-spacing: 0.3rem;
+            color: var(--canvas-white);
+            opacity: 0.5;
+            font-weight: 300;
+        }
+        
+        .loading-bar-container {
+            width: min(250px, 80vw);
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 2.5rem auto 1rem;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .loading-bar {
+            height: 100%;
+            background: var(--canvas-white);
+            animation: loading 2s ease-in-out;
+            width: 0%;
+        }
+        
+        @keyframes loading {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        
+        .loading-text {
+            font-size: clamp(0.8rem, 3vw, 0.9rem);
+            opacity: 0.6;
+            margin-top: 1rem;
+            letter-spacing: 0.2rem;
+        }
+        
+        /* PROLOGUE SCREEN */
+        #prologueScreen {
+            background: var(--dark-bg);
+            padding: 1.5rem;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        
+        /* Cinematic vignette effect */
+        #prologueScreen::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.7) 100%);
+            pointer-events: none;
+        }
+        
+        .prologue-content {
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+            padding: 0 1rem;
+            z-index: 1;
+        }
+        
+        .prologue-text {
+            font-size: clamp(1.1rem, 4vw, 1.5rem);
+            line-height: 2;
+            font-weight: 300;
+            opacity: 1;
+            text-align: center;
+        }
+        
+        .prologue-line {
+            opacity: 0;
+            transform: translateY(10px);
+            display: block;
+            margin-bottom: 0.8rem;
+        }
+        
+        .prologue-line.highlight {
+            color: var(--gold);
+            font-weight: 400;
+        }
+        
+        .prologue-line.fade-in {
+            animation: fadeInLine 1.2s ease-out forwards;
+        }
+        
+        @keyframes fadeInLine {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .prologue-highlight {
+            color: var(--gold);
+            font-weight: 400;
+        }
+        
+        .continue-button {
+            margin-top: 2rem;
+            padding: 0.9rem 2rem;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--canvas-white);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.9rem, 3.5vw, 1rem);
+            letter-spacing: 0.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        @keyframes fadeInButton {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .continue-button:active {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--gold);
+        }
+        
+        /* CHARACTER CREATION SCREEN */
+        #characterScreen {
+            padding: 1.5rem;
+            background: var(--dark-bg);
+            overflow-y: auto;
+        }
+        
+        .character-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        
+        .character-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.3rem, 5vw, 1.8rem);
+            font-weight: 300;
+            letter-spacing: 0.1rem;
+            color: var(--canvas-white);
+            margin-bottom: 0.5rem;
+        }
+        
+        .character-subtitle {
+            font-size: clamp(0.8rem, 3vw, 0.9rem);
+            opacity: 0.5;
+            letter-spacing: 0.05rem;
+            font-weight: 300;
+        }
+        
+        .form-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .form-group {
+            margin-bottom: 2rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            letter-spacing: 0.05rem;
+            color: var(--canvas-white);
+            margin-bottom: 1rem;
+            opacity: 0.7;
+            font-weight: 300;
+        }
+        
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 0.9rem 0.5rem;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0;
+            color: var(--canvas-white);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            transition: all 0.3s ease;
+        }
+        
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23F5F5DC' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            padding-right: 2rem;
+        }
+        
+        .form-select option {
+            background: var(--dark-bg);
+            color: var(--canvas-white);
+        }
+        
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-bottom-color: var(--gold);
+        }
+        
+        .start-button {
+            width: 100%;
+            margin-top: 2.5rem;
+            padding: 0.9rem;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--canvas-white);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.9rem, 3.5vw, 1rem);
+            letter-spacing: 0.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .start-button:active:not(:disabled) {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--gold);
+        }
+        
+        .start-button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        /* Mobile optimizations for small screens */
+        @media screen and (max-width: 375px) {
+            .prologue-text {
+                font-size: 1.1rem;
+                line-height: 1.8;
+                margin-bottom: 2rem;
+            }
+            
+            .form-group {
+                margin-bottom: 1.5rem;
+            }
+            
+            .character-header {
+                margin-bottom: 2rem;
+            }
+        }
+        
+        /* Ensure touch targets are large enough */
+        @media (pointer: coarse) {
+            .continue-button,
+            .start-button {
+                min-height: 44px;
+            }
+        }
+        
+        /* STREET WALK TRANSITION SCREEN */
+        #streetWalkScreen {
+            background: var(--dark-bg);
+            padding: 1.5rem;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        
+        /* Cinematic vignette */
+        #streetWalkScreen::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.7) 100%);
+            pointer-events: none;
+        }
+        
+        .street-walk-content {
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+            padding: 0 1rem;
+            z-index: 1;
+        }
+        
+        .street-walk-text {
+            font-size: clamp(1.1rem, 4vw, 1.4rem);
+            line-height: 2;
+            font-weight: 300;
+            opacity: 1;
+            text-align: center;
+        }
+        
+        .street-walk-line {
+            opacity: 0;
+            transform: translateY(10px);
+            display: block;
+            margin-bottom: 0.8rem;
+        }
+        
+        .street-walk-line.highlight {
+            color: var(--gold);
+            font-weight: 400;
+        }
+        
+        .street-walk-line.fade-in {
+            animation: fadeInLine 1.2s ease-out forwards;
+        }
+        
+        /* STREET TOURNAMENT SCREEN */
+        #streetScreen {
+            background: var(--dark-bg);
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+        
+        .street-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .street-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 2rem);
+            font-weight: 300;
+            color: var(--canvas-white);
+            margin-bottom: 0.5rem;
+        }
+        
+        .street-subtitle {
+            font-size: clamp(0.85rem, 3vw, 1rem);
+            opacity: 0.6;
+            line-height: 1.6;
+            font-weight: 300;
+        }
+        
+        .fighters-grid {
+            display: grid;
+            gap: 1.5rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .fighter-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .fighter-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.05), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .fighter-card:active::before {
+            opacity: 1;
+        }
+        
+        .fighter-card:active {
+            border-color: var(--gold);
+            transform: scale(0.98);
+        }
+        
+        .fighter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.2rem;
+        }
+        
+        .fighter-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.3rem, 4.5vw, 1.6rem);
+            font-weight: 400;
+            color: var(--canvas-white);
+            margin-bottom: 0.3rem;
+        }
+        
+        .fighter-nickname {
+            font-size: clamp(0.85rem, 3vw, 0.95rem);
+            opacity: 0.5;
+            font-style: italic;
+        }
+        
+        .talent-badge {
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            color: var(--dark-bg);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.9rem, 3.5vw, 1rem);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+        }
+        
+        .fighter-basics {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.2rem;
+            font-size: clamp(0.85rem, 3vw, 0.95rem);
+            opacity: 0.7;
+        }
+        
+        .fighter-basics span {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        
+        .fighter-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+        }
+        
+        .stat-label {
+            opacity: 0.6;
+            font-weight: 300;
+        }
+        
+        .stat-value {
+            font-weight: 400;
+            color: var(--canvas-white);
+        }
+        
+        .stat-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 0.3rem;
+        }
+        
+        .stat-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), #FFA500);
+            transition: width 0.5s ease;
+        }
+        
+        .talent-description {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: clamp(0.8rem, 2.8vw, 0.85rem);
+            opacity: 0.5;
+            line-height: 1.5;
+        }
+        
+        .talent-bonus {
+            color: var(--gold);
+            font-weight: 400;
+        }
+        
+        /* CONFIRMATION MODAL */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 1.5rem;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-content {
+            background: var(--dark-bg);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            padding: 2rem 1.5rem;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* NEW ANIMATIONS FOR COMBAT */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes hpDrain {
+            from {
+                width: var(--start-width);
+            }
+            to {
+                width: var(--end-width);
+            }
+        }
+        
+        @keyframes critFlash {
+            0%, 100% { 
+                box-shadow: 0 0 0 rgba(255, 215, 0, 0);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+                transform: scale(1.05);
+            }
+        }
+        
+        @keyframes knockdownShake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            10% { transform: translate(-10px, -5px) rotate(-2deg); }
+            20% { transform: translate(10px, 5px) rotate(2deg); }
+            30% { transform: translate(-10px, 5px) rotate(-2deg); }
+            40% { transform: translate(10px, -5px) rotate(2deg); }
+            50% { transform: translate(-10px, -5px) rotate(-2deg); }
+            60% { transform: translate(10px, 5px) rotate(2deg); }
+            70% { transform: translate(-10px, 5px) rotate(-2deg); }
+            80% { transform: translate(10px, -5px) rotate(2deg); }
+            90% { transform: translate(-5px, -2px) rotate(-1deg); }
+        }
+        
+        @keyframes victoryParticles {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(0);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px var(--color); }
+            50% { box-shadow: 0 0 20px var(--color); }
+        }
+        
+        .modal-fighter-avatar {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        .modal-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.4rem, 5vw, 1.8rem);
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+        
+        .modal-subtitle {
+            font-size: clamp(0.9rem, 3.5vw, 1rem);
+            opacity: 0.7;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .modal-button {
+            flex: 1;
+            padding: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: transparent;
+            color: var(--canvas-white);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.9rem, 3.5vw, 1rem);
+            letter-spacing: 0.05rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .modal-button.confirm {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+        
+        .modal-button:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .modal-button.confirm:active {
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        /* TACTICS MODAL */
+        .tactics-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 1rem;
+        }
+        
+        .tactics-modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .tactics-modal-content {
+            background: var(--dark-bg);
+            border: 2px solid var(--gold);
+            border-radius: 12px;
+            padding: 1.5rem;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+        
+        .tactics-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .tactics-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.8rem;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+        
+        .tactics-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        .tactics-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .tactic-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .tactic-card:hover {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .tactic-card.selected {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.15);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        
+        .tactic-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .tactic-icon {
+            font-size: 2rem;
+        }
+        
+        .tactic-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.3rem;
+            color: var(--gold);
+        }
+        
+        .tactic-description {
+            font-size: 0.85rem;
+            opacity: 0.7;
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+        }
+        
+        .tactic-effects {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .tactic-effect {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.6rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        
+        .tactic-effect.positive {
+            color: #4ade80;
+        }
+        
+        .tactic-effect.negative {
+            color: #ef4444;
+        }
+        
+        .tactics-confirm-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--gold);
+            color: var(--dark-bg);
+            border: none;
+            border-radius: 8px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .tactics-confirm-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+        
+        .tactics-confirm-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .fighter-avatar {
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        /* MAIN GAME SCREEN */
+        #gameScreen {
+            background: var(--dark-bg);
+            overflow-y: auto;
+        }
+        
+        /* Manager Profile Section */
+        .manager-profile {
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, transparent 100%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            flex-shrink: 0;
+        }
+        
+        .manager-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 0.8rem;
+        }
+        
+        .vip-star-container {
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .vip-star {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            font-size: clamp(1.2rem, 4vw, 1.5rem);
+            filter: grayscale(100%) brightness(0.5);
+            opacity: 0.5;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .vip-star.active {
+            filter: grayscale(0%) brightness(1);
+            opacity: 1;
+            animation: vipPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes vipPulse {
+            0%, 100% { 
+                transform: scale(1) rotate(0deg);
+            }
+            50% { 
+                transform: scale(1.1) rotate(10deg);
+            }
+        }
+        
+        .manager-avatar {
+            font-size: clamp(2.5rem, 8vw, 3rem);
+            width: clamp(60px, 15vw, 70px);
+            height: clamp(60px, 15vw, 70px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 50%;
+        }
+        
+        .vip-status {
+            font-size: clamp(0.75rem, 2.8vw, 0.8rem);
+            opacity: 0.7;
+            margin-top: 0.2rem;
+            color: var(--gold);
+        }
+        
+        .vip-quick-btn {
+            padding: 0.6rem 1rem;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            border: none;
+            color: var(--dark-bg);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.85rem, 3vw, 0.95rem);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        
+        .vip-quick-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .manager-info {
+            flex: 1;
+        }
+        
+        .manager-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.3rem, 5vw, 1.6rem);
+            font-weight: 400;
+            color: var(--canvas-white);
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .vip-badge {
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            color: var(--dark-bg);
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: clamp(0.7rem, 2.5vw, 0.8rem);
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+        
+        .manager-details {
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.6;
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
+        
+        .manager-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.6rem;
+        }
+        
+        .manager-stat-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 0.6rem;
+            text-align: center;
+        }
+        
+        .manager-stat-label {
+            font-size: clamp(0.7rem, 2.5vw, 0.75rem);
+            opacity: 0.5;
+            margin-bottom: 0.2rem;
+        }
+        
+        .manager-stat-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 3.8vw, 1.2rem);
+            color: var(--gold);
+            font-weight: 400;
+        }
+        
+        .manager-stat-box.clickable {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .manager-stat-box.clickable:active {
+            transform: scale(0.95);
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        /* Fighter Card (compact) */
+        .fighter-card-main {
+            margin: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .fighter-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+        
+        .fighter-card-avatar {
+            font-size: clamp(2rem, 7vw, 2.5rem);
+            width: clamp(50px, 12vw, 60px);
+            height: clamp(50px, 12vw, 60px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            border-radius: 50%;
+        }
+        
+        .fighter-card-info {
+            flex: 1;
+        }
+        
+        .fighter-card-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.1rem, 4vw, 1.3rem);
+            font-weight: 400;
+            color: var(--canvas-white);
+            margin-bottom: 0.2rem;
+        }
+        
+        .fighter-card-stats {
+            font-size: clamp(0.8rem, 3vw, 0.85rem);
+            opacity: 0.6;
+            display: flex;
+            gap: 0.8rem;
+        }
+        
+        .fighter-quick-stats {
+            display: flex;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+        
+        .fighter-quick-stat {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .fighter-quick-stat-label {
+            font-size: clamp(0.75rem, 2.5vw, 0.8rem);
+            opacity: 0.5;
+            margin-bottom: 0.2rem;
+        }
+        
+        .fighter-quick-stat-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 3.5vw, 1.1rem);
+            color: var(--canvas-white);
+        }
+        
+        .fighter-next-fight {
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 6px;
+            padding: 0.6rem;
+            text-align: center;
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            margin-bottom: 1rem;
+        }
+        
+        .fighter-card-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.6rem;
+        }
+        
+        .fighter-card-btn {
+            padding: 0.7rem;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--canvas-white);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.9rem, 3vw, 0.95rem);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 6px;
+        }
+        
+        .fighter-card-btn.primary {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+        
+        .fighter-card-btn:active {
+            transform: scale(0.97);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Main Content */
+        /* TOP RESOURCE BAR */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, var(--dark-bg) 0%, rgba(10, 10, 10, 0.95) 100%);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+            padding: 0.8rem 1rem;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* SCROLLABLE CONTENT */
+        .game-scroll-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-top: 60px;
+            padding-bottom: 80px;
+        }
+        
+        /* BOTTOM NAVIGATION */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(0deg, var(--dark-bg) 0%, rgba(10, 10, 10, 0.95) 100%);
+            border-top: 1px solid rgba(255, 215, 0, 0.2);
+            padding: 0.5rem 0.5rem calc(env(safe-area-inset-bottom) + 0.5rem);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+        
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.4rem 0.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            position: relative;
+            min-width: 0;
+        }
+        
+        .nav-item:active {
+            background: rgba(255, 215, 0, 0.1);
+            transform: scale(0.95);
+        }
+        
+        .nav-icon {
+            font-size: clamp(1.3rem, 4.5vw, 1.6rem);
+            filter: grayscale(0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .nav-item:active .nav-icon {
+            filter: grayscale(0);
+            transform: scale(1.1);
+        }
+        
+        .nav-label {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.6rem, 2.2vw, 0.7rem);
+            color: var(--canvas-white);
+            opacity: 0.8;
+            letter-spacing: 0.02rem;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+        
+        .nav-badge {
+            position: absolute;
+            top: 0.3rem;
+            right: 0.5rem;
+            background: #ef4444;
+            color: white;
+            font-size: 0.6rem;
+            font-weight: 600;
+            padding: 0.15rem 0.4rem;
+            border-radius: 10px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .resource-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        
+        .resource-icon {
+            font-size: clamp(1.2rem, 4vw, 1.4rem);
+        }
+        
+        .resource-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.9rem, 3.5vw, 1rem);
+            color: var(--canvas-white);
+            font-weight: 400;
+        }
+        
+        /* TRAINING SCREEN */
+        #trainingScreen {
+            background: var(--dark-bg);
+            overflow-y: auto;
+        }
+        
+        .training-header {
+            padding: 1rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            margin-top: 50px;  /* Відступ зверху для кнопки назад */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, transparent 100%);
+            text-align: center;  /* Центруємо текст */
+        }
+        
+        .training-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
+            font-weight: 400;
+            color: var(--canvas-white);
+            margin-bottom: 0.5rem;
+        }
+        
+        .training-subtitle {
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.6;
+        }
+        
+        .training-content {
+            padding: 1rem;
+        }
+        
+        .training-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .training-card.active {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.05);
+        }
+        
+        .training-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .training-stat-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.2rem, 4.5vw, 1.4rem);
+            font-weight: 400;
+            color: var(--canvas-white);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .training-stat-icon {
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
+        }
+        
+        .training-stat-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.1rem, 4vw, 1.3rem);
+            color: var(--gold);
+        }
+        
+        .training-progress {
+            margin-bottom: 1rem;
+        }
+        
+        .training-progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        
+        .training-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), #FFA500);
+            transition: width 0.3s ease;
+        }
+        
+        .training-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+        }
+        
+        .training-option {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 0.8rem 0.4rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .training-option.selected {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .training-option:active {
+            transform: scale(0.95);
+        }
+        
+        .training-option-time {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 3.5vw, 1.1rem);
+            color: var(--canvas-white);
+            margin-bottom: 0.2rem;
+        }
+        
+        .training-option-cost {
+            font-size: clamp(0.75rem, 2.8vw, 0.8rem);
+            opacity: 0.6;
+        }
+        
+        .training-option-reward {
+            font-size: clamp(0.7rem, 2.5vw, 0.75rem);
+            color: var(--gold);
+            margin-top: 0.2rem;
+        }
+        
+        .training-button {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            border: none;
+            color: var(--dark-bg);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 3.5vw, 1.1rem);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            letter-spacing: 0.05rem;
+        }
+        
+        .training-button:active {
+            transform: scale(0.98);
+        }
+        
+        .training-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .training-timer {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .training-timer-label {
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.7;
+            margin-bottom: 0.5rem;
+        }
+        
+        .training-timer-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(2rem, 7vw, 2.5rem);
+            color: var(--gold);
+            font-weight: 400;
+            margin-bottom: 1rem;
+        }
+        
+        .training-boost-button {
+            padding: 0.8rem 1.5rem;
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.9rem, 3vw, 1rem);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .training-boost-button:active {
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .back-button {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--canvas-white);
+            font-size: 1.5rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .back-button:active {
+            background: rgba(255, 255, 255, 0.05);
+            transform: scale(0.95);
+        }
+        
+        /* FIGHTS SCREEN */
+        #fightsScreen {
+            background: var(--dark-bg);
+            overflow-y: auto;
+        }
+        
+        .fights-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, transparent 100%);
+            text-align: center;
+        }
+        
+        .fights-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
+            font-weight: 400;
+            color: var(--canvas-white);
+            margin-bottom: 0.5rem;
+        }
+        
+        .fights-subtitle {
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.6;
+        }
+        
+        .fights-cooldown {
+            margin: 1rem;
+            padding: 1rem;
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .cooldown-text {
+            font-size: clamp(0.9rem, 3.5vw, 1rem);
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+        }
+        
+        .cooldown-timer {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
+            color: var(--gold);
+            margin-bottom: 0.8rem;
+        }
+        
+        .cooldown-skip-btn {
+            padding: 0.7rem 1.5rem;
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.9rem, 3vw, 1rem);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .cooldown-skip-btn:active {
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .fights-content {
+            padding: 1rem;
+        }
+        
+        .opponent-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .opponent-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+        
+        .opponent-avatar {
+            font-size: clamp(2rem, 7vw, 2.5rem);
+            width: clamp(50px, 12vw, 60px);
+            height: clamp(50px, 12vw, 60px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            border-radius: 50%;
+            overflow: hidden;
+        }
+        
+        .opponent-avatar img,
+        .fighter-avatar img,
+        .modal-fighter-avatar img,
+        .stats-fighter-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        
+        .opponent-info {
+            flex: 1;
+        }
+        
+        .opponent-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.2rem, 4.5vw, 1.4rem);
+            font-weight: 400;
+            color: var(--canvas-white);
+            margin-bottom: 0.3rem;
+        }
+        
+        .opponent-details {
+            font-size: clamp(0.8rem, 3vw, 0.85rem);
+            opacity: 0.6;
+            display: flex;
+            gap: 0.8rem;
+        }
+        
+        .opponent-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+        
+        .opponent-stat {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 0.6rem;
+        }
+        
+        .opponent-stat-label {
+            font-size: clamp(0.75rem, 2.5vw, 0.8rem);
+            opacity: 0.5;
+            margin-bottom: 0.2rem;
+        }
+        
+        .opponent-stat-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 3.5vw, 1.1rem);
+            color: var(--canvas-white);
+        }
+        
+        .opponent-stat-value.positive {
+            color: #4ade80;
+        }
+        
+        .opponent-stat-value.negative {
+            color: #f87171;
+        }
+        
+        .difficulty-badge {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            border-radius: 12px;
+            font-size: clamp(0.75rem, 2.5vw, 0.8rem);
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+        }
+        
+        .difficulty-easy {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+            border: 1px solid #4ade80;
+        }
+        
+        .difficulty-medium {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            border: 1px solid #fbbf24;
+        }
+        
+        .difficulty-hard {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+            border: 1px solid #f87171;
+        }
+        
+        .opponent-rewards {
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 6px;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+        }
+        
+        .rewards-label {
+            font-size: clamp(0.75rem, 2.5vw, 0.8rem);
+            opacity: 0.6;
+            margin-bottom: 0.4rem;
+        }
+        
+        .rewards-values {
+            display: flex;
+            gap: 1rem;
+            font-size: clamp(0.9rem, 3.5vw, 1rem);
+        }
+        
+        .fight-button {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            border: none;
+            color: var(--dark-bg);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 3.5vw, 1.1rem);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            letter-spacing: 0.05rem;
+        }
+        
+        .fight-button:active {
+            transform: scale(0.98);
+        }
+        
+        /* FIGHT SIMULATION SCREEN */
+        #fightSimScreen {
+            background: var(--dark-bg);
+            overflow-y: auto;
+        }
+        
+        .fight-sim-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, transparent 100%);
+            text-align: center;
+        }
+        
+        .fight-sim-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.3rem, 5vw, 1.6rem);
+            font-weight: 400;
+            color: var(--canvas-white);
+            margin-bottom: 0.5rem;
+        }
+        
+        .fight-sim-round {
+            font-size: clamp(0.9rem, 3vw, 1rem);
+            opacity: 0.6;
+        }
+        
+        .fight-sim-content {
+            padding: 1rem;
+        }
+        
+        .fighters-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+        }
+        
+        .fighter-display {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .fighter-display-avatar {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 0.5rem;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .fighter-display-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .fighter-display-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 3.5vw, 1.2rem);
+            font-weight: 400;
+            color: var(--canvas-white);
+            margin-bottom: 0.5rem;
+        }
+        
+        .fighter-health-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .fighter-health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #22c55e);
+            transition: width 0.5s ease;
+        }
+        
+        .fighter-health-fill.low {
+            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+        }
+        
+        .fighter-health-fill.critical {
+            background: linear-gradient(90deg, #f87171, #ef4444);
+            animation: pulse 1s infinite;
+        }
+        
+        /* Animation classes */
+        .shake-effect {
+            animation: shake 0.3s;
+        }
+        
+        .crit-flash {
+            animation: critFlash 0.5s;
+        }
+        
+        .knockdown-shake {
+            animation: knockdownShake 0.8s;
+        }
+        
+        .vs-text {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 2rem);
+            color: var(--gold);
+            font-weight: 600;
+        }
+        
+        .fight-log {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+        }
+        
+        .fight-log-entry {
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            line-height: 1.5;
+            opacity: 0.8;
+            animation: slideInLog 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        @keyframes slideInLog {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 0.8;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        
+        .fight-log-entry.player {
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.05);
+            border-left: 3px solid #4ade80;
+        }
+        
+        .fight-log-entry.opponent {
+            color: #f87171;
+            background: rgba(248, 113, 113, 0.05);
+            border-left: 3px solid #f87171;
+        }
+        
+        .fight-log-entry.neutral {
+            color: rgba(255, 255, 255, 0.9);
+            text-align: center;
+        }
+        
+        .fight-log-entry.highlight {
+            background: linear-gradient(90deg, rgba(255,215,0,0.2), rgba(255,215,0,0.05));
+            border-left: 4px solid var(--gold);
+            font-weight: 700;
+            animation: glow 2s infinite;
+            --color: var(--gold);
+        }
+        
+        .fight-result {
+            text-align: center;
+            padding: 2rem 1rem;
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .result-icon {
+            font-size: clamp(3rem, 10vw, 4rem);
+            margin-bottom: 1rem;
+        }
+        
+        .result-text {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 2rem);
+            font-weight: 400;
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+        
+        /* NEW IMPROVED RESULT STYLES */
+        #fightResultDisplay {
+            display: none;
+            width: 100%;
+            min-height: 100vh;
+            padding: 2rem;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--dark-bg);
+            text-align: center;
+        }
+        
+        #fightResultDisplay.show {
+            display: block !important;
+        }
+        
+        .result-icon {
+            font-size: clamp(5rem, 15vw, 8rem);
+            margin: 2rem 0;
+            animation: resultBounce 0.6s ease-out;
+        }
+        
+        @keyframes resultBounce {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .result-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(2rem, 8vw, 3rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 1rem 0;
+            text-transform: uppercase;
+        }
+        
+        .result-subtitle {
+            font-size: clamp(1rem, 4vw, 1.3rem);
+            opacity: 0.7;
+            margin: 1rem 0 2rem;
+        }
+        
+        .result-rewards {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .reward-item {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid #FFD700;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.2rem, 5vw, 1.5rem);
+            font-weight: 600;
+            color: var(--gold);
+        }
+        
+        .continue-btn {
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            border: none;
+            padding: clamp(1rem, 4vw, 1.5rem) clamp(2rem, 8vw, 3rem);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.1rem, 4.5vw, 1.4rem);
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: var(--dark-bg);
+            border-radius: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+            margin-top: 2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .continue-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(255, 215, 0, 0.5);
+        }
+        
+        .continue-btn:active {
+            transform: translateY(0);
+        }
+        
+        .result-content {
+            text-align: center;
+            padding: 2rem;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .result-icon-large {
+            font-size: clamp(5rem, 15vw, 8rem);
+            margin-bottom: 1rem;
+            animation: resultBounce 0.6s ease-out;
+        }
+        
+        @keyframes resultBounce {
+            0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(10deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        
+        .result-title-large {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(2rem, 8vw, 3.5rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        
+        .result-subtitle {
+            font-size: clamp(1rem, 4vw, 1.3rem);
+            opacity: 0.7;
+            margin-bottom: 2rem;
+        }
+        
+        .result-rewards {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .result-reward-item {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.2rem, 5vw, 1.8rem);
+            font-weight: 600;
+            color: var(--gold);
+            animation: rewardPulse 0.8s ease-out;
+        }
+        
+        @keyframes rewardPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .result-button-large {
+            width: 100%;
+            max-width: 400px;
+            padding: 1.2rem 2rem;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            border: none;
+            color: var(--dark-bg);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.1rem, 4.5vw, 1.4rem);
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+            margin-top: 2rem;
+        }
+        
+        .result-button-large:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(255, 215, 0, 0.5);
+        }
+        
+        .result-button-large:active {
+            transform: translateY(0);
+        }
+        
+        .result-rewards {
+            font-size: clamp(1rem, 3.5vw, 1.2rem);
+            opacity: 0.8;
+        }
+        
+        .continue-button {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            border: none;
+            color: var(--dark-bg);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 3.5vw, 1.1rem);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .continue-button:active {
+            transform: scale(0.98);
+        }
+        
+        /* VIP SCREEN */
+        #vipScreen {
+            background: var(--dark-bg);
+            overflow-y: auto;
+        }
+        
+        .vip-header {
+            padding: 1.5rem;
+            margin-top: 50px;  /* Відступ для кнопки назад */
+            border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.1) 0%, transparent 100%);
+            text-align: center;
+        }
+        
+        .vip-icon {
+            font-size: clamp(3rem, 10vw, 4rem);
+            margin-bottom: 0.5rem;
+        }
+        
+        .vip-header-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.8rem, 6vw, 2.2rem);
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+        
+        .vip-header-subtitle {
+            font-size: clamp(0.9rem, 3vw, 1rem);
+            opacity: 0.7;
+        }
+        
+        .vip-content {
+            padding: 1rem;
+        }
+        
+        .vip-status-card {
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .vip-status-active {
+            border-color: var(--gold);
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05));
+        }
+        
+        .vip-status-label {
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.7;
+            margin-bottom: 0.5rem;
+        }
+        
+        .vip-status-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.3rem, 5vw, 1.6rem);
+            color: var(--gold);
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+        
+        .vip-timer {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.1rem, 4vw, 1.3rem);
+            color: var(--canvas-white);
+            opacity: 0.8;
+        }
+        
+        .vip-benefits {
+            margin-bottom: 1.5rem;
+        }
+        
+        .vip-benefits-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.2rem, 4.5vw, 1.4rem);
+            color: var(--canvas-white);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .vip-benefit-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .vip-benefit-icon {
+            font-size: clamp(1.8rem, 6vw, 2.2rem);
+            width: clamp(50px, 12vw, 60px);
+            height: clamp(50px, 12vw, 60px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .vip-benefit-text {
+            flex: 1;
+        }
+        
+        .vip-benefit-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 3.5vw, 1.1rem);
+            color: var(--gold);
+            margin-bottom: 0.2rem;
+        }
+        
+        .vip-benefit-desc {
+            font-size: clamp(0.8rem, 3vw, 0.85rem);
+            opacity: 0.6;
+        }
+        
+        .vip-packages {
+            margin-bottom: 1.5rem;
+        }
+        
+        .vip-packages-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.2rem, 4.5vw, 1.4rem);
+            color: var(--canvas-white);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .vip-package {
+            background: rgba(255, 255, 255, 0.02);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+        
+        .vip-package.recommended {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.05);
+        }
+        
+        .vip-package-badge {
+            position: absolute;
+            top: -10px;
+            right: 1rem;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            color: var(--dark-bg);
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            font-size: clamp(0.7rem, 2.5vw, 0.75rem);
+            font-weight: 600;
+        }
+        
+        .vip-package-duration {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.4rem, 5vw, 1.6rem);
+            color: var(--canvas-white);
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+        
+        .vip-package-price {
+            font-size: clamp(1.1rem, 4vw, 1.3rem);
+            color: var(--gold);
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .vip-package-save {
+            font-size: clamp(0.8rem, 3vw, 0.85rem);
+            color: #4ade80;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .vip-buy-button {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            border: none;
+            color: var(--dark-bg);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 3.5vw, 1.1rem);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            letter-spacing: 0.05rem;
+        }
+        
+        .vip-buy-button:active {
+            transform: scale(0.98);
+        }
+        
+        .vip-buy-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .vip-note {
+            text-align: center;
+            font-size: clamp(0.8rem, 2.8vw, 0.85rem);
+            opacity: 0.5;
+            margin-top: 1rem;
+            line-height: 1.5;
+        }
+        
+        /* FIGHTERS MANAGEMENT */
+        .fighters-list {
+            margin: 1rem;
+        }
+        
+        .fighter-slot {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .fighter-slot.active {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.05);
+        }
+        
+        .fighter-slot.locked {
+            cursor: pointer;
+            opacity: 1;
+        }
+        
+        .slot-locked-content {
+            text-align: center;
+            padding: 1rem;
+        }
+        
+        .slot-locked-content.collapsed {
+            padding: 0.8rem 1rem;
+        }
+        
+        .slot-locked-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        
+        .slot-locked-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            flex: 1;
+        }
+        
+        .slot-locked-icon {
+            font-size: clamp(1.8rem, 6vw, 2.2rem);
+        }
+        
+        .slot-locked-content.collapsed .slot-locked-icon {
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
+        }
+        
+        .slot-locked-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            color: var(--canvas-white);
+        }
+        
+        .slot-locked-content.collapsed .slot-locked-title {
+            font-size: clamp(0.95rem, 3.5vw, 1.1rem);
+        }
+        
+        .slot-expand-icon {
+            font-size: clamp(1.2rem, 4vw, 1.5rem);
+            opacity: 0.6;
+            transition: transform 0.3s ease;
+        }
+        
+        .slot-expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+        
+        .slot-locked-details {
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .slot-locked-details.expanded {
+            display: block;
+        }
+        
+        .slot-locked-desc {
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.6;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+        
+        .slot-unlock-button {
+            padding: 0.9rem 1.5rem;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            border: none;
+            color: var(--dark-bg);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.95rem, 3.5vw, 1.05rem);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .slot-unlock-button:active {
+            transform: scale(0.98);
+        }
+        
+        /* ACADEMY SCREEN */
+        #academyScreen {
+            background: var(--dark-bg);
+            overflow-y: auto;
+        }
+        
+        .academy-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, transparent 100%);
+            text-align: center;
+        }
+        
+        .academy-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
+            font-weight: 400;
+            color: var(--canvas-white);
+            margin-bottom: 0.5rem;
+        }
+        
+        .academy-subtitle {
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.6;
+        }
+        
+        .academy-content {
+            padding: 1rem;
+        }
+        
+        .academy-tab {
+            flex: 1;
+            padding: 0.8rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .academy-tab:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .academy-tab.active {
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            border-color: var(--gold);
+            color: var(--dark-bg);
+            font-weight: 700;
+        }
+        
+        .academy-timer-card {
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .academy-timer-label {
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.7;
+            margin-bottom: 0.5rem;
+        }
+        
+        .academy-timer-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.3rem, 5vw, 1.6rem);
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+        
+        .academy-refresh-button {
+            padding: 0.8rem 1.5rem;
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.9rem, 3vw, 1rem);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .academy-refresh-button:active {
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .academy-candidates {
+            margin-top: 1rem;
+        }
+        
+        .academy-candidates-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.1rem, 4vw, 1.3rem);
+            color: var(--canvas-white);
+            margin-bottom: 1rem;
+        }
+        
+        .candidate-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .candidate-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+        
+        .candidate-avatar {
+            font-size: clamp(2rem, 7vw, 2.5rem);
+            width: clamp(50px, 12vw, 60px);
+            height: clamp(50px, 12vw, 60px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            border-radius: 50%;
+            overflow: hidden;
+        }
+        
+        .candidate-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .candidate-info {
+            flex: 1;
+        }
+        
+        .candidate-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.2rem, 4.5vw, 1.4rem);
+            font-weight: 400;
+            color: var(--canvas-white);
+            margin-bottom: 0.3rem;
+        }
+        
+        .candidate-details {
+            font-size: clamp(0.8rem, 3vw, 0.85rem);
+            opacity: 0.6;
+        }
+        
+        .candidate-talent-badge {
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            color: var(--dark-bg);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.9rem, 3.5vw, 1rem);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
+        .candidate-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+        }
+        
+        .candidate-stat {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 0.5rem;
+        }
+        
+        .candidate-stat-label {
+            font-size: clamp(0.75rem, 2.5vw, 0.8rem);
+            opacity: 0.5;
+            margin-bottom: 0.2rem;
+        }
+        
+        .candidate-stat-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.95rem, 3.5vw, 1.05rem);
+            color: var(--canvas-white);
+        }
+        
+        .candidate-price {
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 6px;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .candidate-price-label {
+            font-size: clamp(0.75rem, 2.5vw, 0.8rem);
+            opacity: 0.6;
+            margin-bottom: 0.3rem;
+        }
+        
+        .candidate-price-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.2rem, 4.5vw, 1.4rem);
+            color: var(--gold);
+        }
+        
+        .candidate-hire-button {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            border: none;
+            color: var(--dark-bg);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 3.5vw, 1.1rem);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .candidate-hire-button:active {
+            transform: scale(0.98);
+        }
+        
+        .candidate-hire-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* TOAST NOTIFICATIONS */
+        .toast-container {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            pointer-events: none;
+            max-width: 90%;
+            width: 400px;
+        }
+        
+        .toast {
+            background: var(--dark-bg);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem 1.2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            animation: slideInDown 0.3s ease, fadeOut 0.3s ease 2.7s;
+            pointer-events: auto;
+        }
+        
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+        
+        .toast-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        .toast-content {
+            flex: 1;
+        }
+        
+        .toast-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1rem;
+            color: var(--canvas-white);
+            margin-bottom: 0.2rem;
+        }
+        
+        .toast-message {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+        
+        .toast.success {
+            border-color: #4ade80;
+            background: linear-gradient(135deg, rgba(74, 222, 128, 0.1), rgba(10, 10, 10, 0.95));
+        }
+        
+        .toast.error {
+            border-color: #ef4444;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(10, 10, 10, 0.95));
+        }
+        
+        .toast.info {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(10, 10, 10, 0.95));
+        }
+        
+        .toast.warning {
+            border-color: #f59e0b;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(10, 10, 10, 0.95));
+        }
+        
+        /* LOADING OVERLAY */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 10, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2500;
+            backdrop-filter: blur(5px);
+        }
+        
+        .loading-overlay.active {
+            display: flex;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 215, 0, 0.2);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* SMOOTH SCREEN TRANSITIONS */
+        .screen {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .screen:not(.active) {
+            opacity: 0;
+            transform: scale(0.98);
+            pointer-events: none;
+        }
+        
+        .screen.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        /* BUTTON PRESS EFFECTS */
+        .nav-item:active,
+        .action-card:active,
+        .fighter-slot:active,
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        /* PULSE ANIMATION for important elements */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        /* FIGHTER STATS SCREEN */
+        #fighterStatsScreen {
+            background: var(--dark-bg);
+            overflow-y: auto;
+        }
+        
+        .stats-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, transparent 100%);
+        }
+        
+        .stats-fighter-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stats-fighter-avatar {
+            font-size: clamp(3rem, 10vw, 4rem);
+            width: clamp(80px, 20vw, 100px);
+            height: clamp(80px, 20vw, 100px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid var(--gold);
+            border-radius: 50%;
+        }
+        
+        .stats-fighter-info {
+            flex: 1;
+        }
+        
+        .stats-fighter-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.3rem, 5vw, 1.6rem);
+            color: var(--canvas-white);
+            margin-bottom: 0.3rem;
+        }
+        
+        .stats-fighter-details {
+            display: flex;
+            gap: 1rem;
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.7;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stats-fighter-record {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.1rem, 4vw, 1.3rem);
+            color: var(--gold);
+        }
+        
+        .stats-content {
+            padding: 1rem;
+        }
+        
+        .stats-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .stats-section-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            color: var(--canvas-white);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+        }
+        
+        .stats-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 0.8rem;
+            text-align: center;
+        }
+        
+        .stats-box-label {
+            font-size: clamp(0.75rem, 2.8vw, 0.8rem);
+            opacity: 0.6;
+            margin-bottom: 0.3rem;
+        }
+        
+        .stats-box-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.2rem, 4.5vw, 1.5rem);
+            color: var(--canvas-white);
+        }
+        
+        .stats-box.highlight {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.05);
+        }
+        
+        .stats-bar-item {
+            margin-bottom: 1rem;
+        }
+        
+        .stats-bar-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.3rem;
+        }
+        
+        .stats-bar-label {
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            color: var(--canvas-white);
+        }
+        
+        .stats-bar-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            color: var(--gold);
+        }
+        
+        .stats-bar-container {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .stats-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), #FFA500);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .fight-history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .fight-history-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 0.8rem;
+        }
+        
+        .fight-history-result {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        .fight-history-info {
+            flex: 1;
+        }
+        
+        .fight-history-opponent {
+            font-size: clamp(0.9rem, 3.5vw, 1rem);
+            color: var(--canvas-white);
+            margin-bottom: 0.2rem;
+        }
+        
+        .fight-history-date {
+            font-size: clamp(0.75rem, 2.8vw, 0.8rem);
+            opacity: 0.5;
+        }
+        
+        .fight-history-item.win {
+            border-left: 3px solid #4ade80;
+        }
+        
+        .fight-history-item.loss {
+            border-left: 3px solid #ef4444;
+        }
+        
+        .fight-history-item.draw {
+            border-left: 3px solid #94a3b8;
+        }
+        
+        .stats-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .stats-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+        }
+        
+        .stats-badge-icon {
+            font-size: 1.2rem;
+        }
+        
+        .stats-empty {
+            text-align: center;
+            padding: 2rem 1rem;
+            opacity: 0.5;
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+        }
+        
+        /* DAILY REWARDS SCREEN */
+        #dailyRewardsScreen {
+            background: var(--dark-bg);
+            overflow-y: auto;
+        }
+        
+        .daily-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, transparent 100%);
+        }
+        
+        .daily-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
+            color: var(--canvas-white);
+            margin-bottom: 0.3rem;
+            text-align: center;
+        }
+        
+        .daily-subtitle {
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.6;
+            text-align: center;
+        }
+        
+        .daily-streak {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem;
+            text-align: center;
+        }
+        
+        .daily-streak-icon {
+            font-size: clamp(2rem, 7vw, 2.5rem);
+            margin-bottom: 0.5rem;
+        }
+        
+        .daily-streak-label {
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.7;
+            margin-bottom: 0.3rem;
+        }
+        
+        .daily-streak-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
+            color: var(--gold);
+        }
+        
+        .daily-content {
+            padding: 1rem;
+        }
+        
+        .daily-calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .daily-day {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            position: relative;
+        }
+        
+        .daily-day.claimed {
+            background: rgba(74, 222, 128, 0.1);
+            border-color: rgba(74, 222, 128, 0.5);
+        }
+        
+        .daily-day.today {
+            border-color: var(--gold);
+            border-width: 2px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .daily-day.locked {
+            opacity: 0.3;
+        }
+        
+        .daily-day-number {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.8rem, 3vw, 0.9rem);
+            color: var(--canvas-white);
+            margin-bottom: 0.2rem;
+        }
+        
+        .daily-day-reward {
+            font-size: clamp(1rem, 3.5vw, 1.2rem);
+            margin-bottom: 0.2rem;
+        }
+        
+        .daily-day-value {
+            font-size: clamp(0.65rem, 2.5vw, 0.7rem);
+            font-weight: 600;
+        }
+        
+        .daily-day-check {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.9rem;
+        }
+        
+        .daily-claim-section {
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .daily-claim-icon {
+            font-size: clamp(3rem, 10vw, 4rem);
+            margin-bottom: 0.5rem;
+        }
+        
+        .daily-claim-text {
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            color: var(--canvas-white);
+            margin-bottom: 0.5rem;
+        }
+        
+        .daily-claim-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 2rem);
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+        
+        .daily-claim-button {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            border: none;
+            color: var(--dark-bg);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .daily-claim-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .daily-claim-button:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+        
+        .daily-next-reward {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .daily-next-label {
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.7;
+            margin-bottom: 0.5rem;
+        }
+        
+        .daily-next-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.2rem, 4.5vw, 1.4rem);
+            color: var(--canvas-white);
+        }
+        
+        .daily-timer {
+            margin-top: 1rem;
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.6;
+            text-align: center;
+        }
+        
+        /* ACHIEVEMENTS SCREEN */
+        #achievementsScreen {
+            background: var(--dark-bg);
+            overflow-y: auto;
+        }
+        
+        .achievements-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, transparent 100%);
+        }
+        
+        .achievements-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
+            color: var(--canvas-white);
+            margin-bottom: 0.3rem;
+            text-align: center;
+        }
+        
+        .achievements-subtitle {
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            opacity: 0.6;
+            text-align: center;
+        }
+        
+        .achievements-summary {
+            display: flex;
+            justify-content: space-around;
+            padding: 1rem;
+            background: rgba(255, 215, 0, 0.05);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        .achievement-summary-item {
+            text-align: center;
+        }
+        
+        .achievement-summary-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.3rem, 5vw, 1.5rem);
+            color: var(--gold);
+        }
+        
+        .achievement-summary-label {
+            font-size: clamp(0.75rem, 2.8vw, 0.8rem);
+            opacity: 0.7;
+            margin-top: 0.2rem;
+        }
+        
+        .achievements-content {
+            padding: 1rem;
+        }
+        
+        .achievement-category {
+            margin-bottom: 1.5rem;
+        }
+        
+        .achievement-category-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            color: var(--canvas-white);
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        .achievement-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .achievement-item.completed {
+            background: rgba(74, 222, 128, 0.1);
+            border-color: rgba(74, 222, 128, 0.5);
+        }
+        
+        .achievement-item.locked {
+            opacity: 0.6;
+        }
+        
+        .achievement-icon {
+            font-size: clamp(2rem, 7vw, 2.5rem);
+            flex-shrink: 0;
+            filter: grayscale(100%);
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
+        
+        .achievement-item.completed .achievement-icon {
+            filter: grayscale(0%);
+            opacity: 1;
+        }
+        
+        .achievement-info {
+            flex: 1;
+        }
+        
+        .achievement-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1rem, 4vw, 1.1rem);
+            color: var(--canvas-white);
+            margin-bottom: 0.3rem;
+        }
+        
+        .achievement-description {
+            font-size: clamp(0.8rem, 3vw, 0.85rem);
+            opacity: 0.7;
+            margin-bottom: 0.5rem;
+        }
+        
+        .achievement-progress {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .achievement-progress-bar {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .achievement-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), #FFA500);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        .achievement-progress-text {
+            font-size: clamp(0.75rem, 2.8vw, 0.8rem);
+            opacity: 0.7;
+            white-space: nowrap;
+        }
+        
+        .achievement-reward {
+            flex-shrink: 0;
+            text-align: center;
+        }
+        
+        .achievement-reward-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.9rem, 3.5vw, 1rem);
+            color: var(--gold);
+        }
+        
+        .achievement-reward-label {
+            font-size: clamp(0.65rem, 2.5vw, 0.7rem);
+            opacity: 0.6;
+        }
+        
+        .achievement-claim-btn {
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            border: none;
+            color: var(--dark-bg);
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.85rem, 3vw, 0.9rem);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .achievement-claim-btn:active {
+            transform: scale(0.97);
+        }
+        
+        /* ========================================= */
+        /* INJURY SYSTEM STYLES */
+        /* ========================================= */
+        
+        .injury-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .injury-modal.active {
+            opacity: 1;
+        }
+        
+        .injury-modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+        }
+        
+        .injury-modal-content {
+            position: relative;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border: 2px solid var(--gold);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.3);
+            animation: slideUpInjury 0.3s ease;
+        }
+        
+        @keyframes slideUpInjury {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .injury-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .injury-modal-header h2 {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.8rem;
+            color: var(--gold);
+            margin: 0;
+        }
+        
+        .injury-close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .injury-close-btn:hover {
+            opacity: 1;
+        }
+        
+        .injury-info {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .injury-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 0.8rem;
+        }
+        
+        .injury-severity {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+        }
+        
+        .injury-severity.light {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+        
+        .injury-severity.medium {
+            background: rgba(250, 204, 21, 0.2);
+            color: #facc15;
+        }
+        
+        .injury-severity.heavy {
+            background: rgba(251, 146, 60, 0.2);
+            color: #fb923c;
+        }
+        
+        .injury-severity.critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        .injury-effect,
+        .injury-time {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 0.5rem;
+        }
+        
+        .treatment-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .treatment-option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .treatment-option:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--gold);
+        }
+        
+        .treatment-option.instant {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .treatment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .treatment-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.1rem;
+            color: white;
+        }
+        
+        .treatment-cost {
+            font-weight: 700;
+            color: var(--gold);
+        }
+        
+        .treatment-time {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 0.8rem;
+        }
+        
+        .treatment-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--gold), #FFA500);
+            border: none;
+            color: #0a0a0a;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 0.8rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+        
+        .treatment-btn:hover:not(.disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+        }
+        
+        .treatment-btn.instant {
+            background: linear-gradient(135deg, #FFD700, #FFC700);
+        }
+        
+        .treatment-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #555;
+        }
+        
+        .injury-natural-btn {
+            width: 100%;
+            background: none;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1rem;
+            padding: 0.8rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .injury-natural-btn:hover {
+            border-color: white;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .fighter-injury-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            padding: 0.3rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            animation: pulseInjury 2s ease infinite;
+        }
+        
+        @keyframes pulseInjury {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+        
+        .injury-status-banner {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2));
+            border: 2px solid #ef4444;
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 1rem 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .injury-status-banner:hover {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.3));
+            transform: translateY(-2px);
+        }
+        
+        .injury-status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .injury-status-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.2rem;
+            color: #ef4444;
+        }
+        
+        .injury-status-severity {
+            font-size: 0.9rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            background: rgba(239, 68, 68, 0.3);
+            color: white;
+        }
+        
+        .injury-status-time {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 0.3rem;
+        }
+        
+        .injury-status-action {
+            margin-top: 0.8rem;
+            font-size: 0.9rem;
+            color: var(--gold);
+            font-weight: 600;
+        }
+        /* ===================================== */
+        /* 🎨 ANIMATIONS & VISUAL ENHANCEMENTS */
+        /* ===================================== */
+        
+        /* Fade in animation for screens */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Slide in from right */
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        /* Slide in from left */
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        /* Pulse animation */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        
+        /* Glow animation */
+        @keyframes glow {
+            0%, 100% {
+                box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.6),
+                            0 0 30px rgba(255, 215, 0, 0.4);
+            }
+        }
+        
+        /* Shake animation */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        /* Bounce animation */
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-15px);
+            }
+            60% {
+                transform: translateY(-7px);
+            }
+        }
+        
+        /* Rotate animation */
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* Confetti animation */
+        @keyframes confetti {
+            0% {
+                transform: translateY(-100%) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        
+        /* Progress bar fill */
+        @keyframes fillProgress {
+            from {
+                width: 0%;
+            }
+        }
+        
+        /* VIP star pulse */
+        @keyframes starPulse {
+            0%, 100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+            }
+            50% {
+                transform: scale(1.2);
+                filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.8));
+            }
+        }
+        
+        /* Apply animations to screens */
+        .screen {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        /* Button press animation */
+        .primary-btn, .secondary-btn, .danger-btn, .success-btn {
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .primary-btn:active, .secondary-btn:active, 
+        .danger-btn:active, .success-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        /* Button ripple effect */
+        .primary-btn::after, .secondary-btn::after,
+        .danger-btn::after, .success-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .primary-btn:active::after, .secondary-btn:active::after,
+        .danger-btn:active::after, .success-btn:active::after {
+            width: 300px;
+            height: 300px;
+        }
+        
+        /* VIP star animation */
+        #vipStar.active {
+            animation: starPulse 2s infinite;
+        }
+        
+        /* Card hover effect */
+        .fighter-card, .team-member-card, .opponent-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .fighter-card:hover, .team-member-card:hover, .opponent-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* Progress bar animation */
+        .progress-fill {
+            animation: fillProgress 1s ease-out;
+        }
+        
+        /* Stat increase animation */
+        @keyframes statIncrease {
+            0% {
+                color: var(--gold);
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.3);
+            }
+            100% {
+                color: inherit;
+                transform: scale(1);
+            }
+        }
+        
+        .stat-increased {
+            animation: statIncrease 0.5s ease;
+        }
+        
+        /* Money earned animation */
+        @keyframes moneyEarned {
+            0% {
+                opacity: 0;
+                transform: translateY(0) scale(0.5);
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(-20px) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-40px) scale(1);
+            }
+        }
+        
+        /* Loading spinner */
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        /* Toast slide in */
+        @keyframes toastSlideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .toast {
+            animation: toastSlideIn 0.3s ease-out;
+        }
+        
+        /* Achievement unlock animation */
+        @keyframes achievementUnlock {
+            0% {
+                transform: scale(0) rotate(-180deg);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2) rotate(10deg);
+            }
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+        
+        .achievement-unlock {
+            animation: achievementUnlock 0.5s ease-out;
+        }
+        
+        /* Smooth transitions */
+        * {
+            transition: background-color 0.2s ease,
+                        color 0.2s ease,
+                        border-color 0.2s ease;
+        }
+        
+        button, a {
+            transition: all 0.2s ease !important;
+        }
+        
