@@ -2757,6 +2757,13 @@ const BOXER_AVATARS = [
             const gameState = characterData.gameState;
             const fighter = characterData.fighters[characterData.activeFighterIndex];
             
+            // ✅ МІГРАЦІЯ: Ініціалізуємо fighter.id для старих акаунтів
+            if (fighter.id === undefined) {
+                fighter.id = characterData.activeFighterIndex || 0;
+                console.log(`✅ Міграція: fighter.id встановлено на ${fighter.id}`);
+                saveGameSync(characterData);
+            }
+            
             // CRITICAL: Force generate top100 if missing (for old saves)
             if (!gameState.top100Fighters || !gameState.top100Fighters[fighter.id || 0]) {
                 console.log('⚠️ Old save detected in career! Force generating top 100...');
@@ -9193,8 +9200,8 @@ function getSponsorBonus(fighter) {
             
             // TOURNAMENT CHECK: If this was a tournament match
             if (currentTournamentMatch) {
-                const data = loadGameSync();
-                const tournament = data.gameState.tournaments.current;
+                // ✅ Використовуємо поточні дані, не перезавантажуємо!
+                const tournament = characterData.gameState.tournaments.current;
                 const match = tournament.bracket[tournament.currentRound - 1][currentTournamentMatch.tournamentIndex];
                 
                 // Get fight result
@@ -9203,11 +9210,11 @@ function getSponsorBonus(fighter) {
                 match.simulated = true;
                 
                 if (playerWon) {
-                    data.gameState.tournaments.stats.totalWins++;
+                    characterData.gameState.tournaments.stats.totalWins++;
                 }
-                data.gameState.tournaments.stats.totalFights++;
+                characterData.gameState.tournaments.stats.totalFights++;
                 
-                saveGameSync(data);
+                saveGameSync(characterData);
                 currentTournamentMatch = null;
                 
                 // Back to tournament screen
