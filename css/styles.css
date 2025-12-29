@@ -74,6 +74,8 @@
             left: 0;
             overflow-y: auto;
             overflow-x: hidden;
+            background-color: var(--dark-bg) !important; /* ✅ FORCE темний фон */
+            color: var(--canvas-white) !important; /* ✅ FORCE світлий текст */
         }
         
         .screen.active {

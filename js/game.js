@@ -2793,11 +2793,11 @@ const BOXER_AVATARS = [
             // CRITICAL: Force generate top100 if missing (for old saves)
             if (!gameState.top100Fighters || !gameState.top100Fighters[fighter.id || 0]) {
                 console.log('⚠️ Old save detected in career! Force generating top 100...');
-                alert('⏳ Генерую рейтинг для старого профілю...\n\nЗачекайте 2-3 секунди');
+                showToast('⏳ Генерую рейтинг', 'Зачекайте 2-3 секунди...', 'info');
                 
                 generateTop100();
                 
-                alert('✅ Рейтинг згенеровано!\n\nЗараз завантажу опонентів...');
+                showToast('✅ Готово!', 'Рейтинг згенеровано', 'success');
                 
                 // Reload data
                 const updatedData = loadGameSync();
@@ -2808,8 +2808,9 @@ const BOXER_AVATARS = [
                     Object.assign(gameState, updatedData.gameState);
                     Object.assign(characterData, updatedData);
                 } else {
-                    alert('❌ ПОМИЛКА: Рейтинг не згенерувався!\n\nСпробуйте перезавантажити гру.');
-                    return;
+                    console.error('❌ Top100 generation failed!');
+                    showToast('❌ Помилка', 'Не вдалося згенерувати рейтинг', 'error');
+                    // ✅ НЕ блокуємо гру - продовжуємо з пустим top100
                 }
             }
             
@@ -8660,19 +8661,56 @@ function getSponsorBonus(fighter) {
                     };
                 }
                 
-                const baseCash = opponent.cashReward;
-                cash = baseCash;
-                
-                // Apply MANAGER bonus first
-                initializeTeam(characterData);
-                const teamBonuses = getTeamBonuses(characterData);
-                let managerBonus = 0;
-                
-                if (teamBonuses.fightEarnings > 0) {
-                    const cashWithManager = Math.floor(cash * (1 + teamBonuses.fightEarnings));
-                    managerBonus = cashWithManager - cash;
-                    cash = cashWithManager;
-                }
+                // ✅ ТУРНІРНІ НАГОРОДИ (якщо це турнір)
+                if (currentTournamentMatch) {
+                    const tournament = currentTournamentMatch.tournament;
+                    const roundRewards = {
+                        1: { cash: 5000, stars: 5 },   // 1/8
+                        2: { cash: 10000, stars: 10 }, // 1/4
+                        3: { cash: 20000, stars: 20 }, // 1/2
+                        4: { cash: 50000, stars: 50 }  // Фінал
+                    };
+                    
+                    const reward = roundRewards[tournament.currentRound] || { cash: 2000, stars: 2 };
+                    
+                    // Додаємо нагороду
+                    gameState.cash += reward.cash;
+                    gameState.stars = (gameState.stars || 0) + reward.stars;
+                    
+                    // Зберігаємо для відображення
+                    fighter._lastFightRewards = {
+                        cash: reward.cash,
+                        baseCash: reward.cash,
+                        ratingGain: 0,
+                        currentRating: fighter.gameData.rating,
+                        vipBonus: 0,
+                        potentialVipBonus: 0,
+                        managerBonus: 0,
+                        isVIPActive: false,
+                        starsReward: reward.stars,
+                        beltWon: null,
+                        oldRanking: null,
+                        newRanking: null,
+                        rankingChange: 0,
+                        tournamentRound: tournament.currentRound
+                    };
+                    
+                    console.log('🏆 Tournament rewards:', reward);
+                } else {
+                    // НОРМАЛЬНІ БОЇ (не турнір)
+                    const baseCash = opponent.cashReward;
+                    cash = baseCash;
+                    
+                    // Apply MANAGER bonus first
+                    initializeTeam(characterData);
+                    const teamBonuses = getTeamBonuses(characterData);
+                    let managerBonus = 0;
+                    
+                    if (teamBonuses.fightEarnings > 0) {
+                        const cashWithManager = Math.floor(cash * (1 + teamBonuses.fightEarnings));
+                        managerBonus = cashWithManager - cash;
+                        cash = cashWithManager;
+                    }
                 
                 // Check VIP status
                 const isVIPActive = gameState.vipUntil && gameState.vipUntil > Date.now();
@@ -8869,6 +8907,7 @@ function getSponsorBonus(fighter) {
                     newRanking: newRanking,
                     rankingChange: oldRanking - newRanking
                 };
+                } // ✅ Закриваємо else для нормальних боїв
                 
             } else if (opponentHP > playerHP) {
                 result = 'ПОРАЗКА';
