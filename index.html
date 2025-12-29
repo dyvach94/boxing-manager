@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Boxing Manager v1.4</title>
+    <title>Boxing Manager v1.5</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -17,7 +17,7 @@
             </div>
             <div class="loading-text">ЗАВАНТАЖЕННЯ...</div>
             <div style="position: absolute; bottom: 20px; width: 100%; text-align: center; color: var(--gold); font-size: 0.8rem; opacity: 0.6;">
-                1.4 STABLE - Silent Recovery
+                1.5 HOTFIX - Manager Data
             </div>
         </div>
     </div>
@@ -1693,34 +1693,44 @@ const BOXER_AVATARS = [
                     return false;
                 }
                 
-                // Перевірка критичних полів
-                if (!data.fighters || !Array.isArray(data.fighters)) {
-                    console.error('Validation failed: no fighters array');
+                // ✅ ГНУЧКА ВАЛІДАЦІЯ: дозволяємо partial data (тільки менеджер без fighters)
+                // Це нормально під час створення персонажа!
+                if (!data.fighters && !data.name) {
+                    console.error('Validation failed: no fighters AND no name (completely empty)');
                     return false;
                 }
                 
-                if (!data.gameState || typeof data.gameState !== 'object') {
-                    console.error('Validation failed: no gameState');
-                    return false;
+                // Якщо є fighters - валідуємо їх
+                if (data.fighters) {
+                    if (!Array.isArray(data.fighters)) {
+                        console.error('Validation failed: fighters not an array');
+                        return false;
+                    }
+                    
+                    if (data.fighters.length === 0) {
+                        console.error('Validation failed: fighters array empty');
+                        return false;
+                    }
+                    
+                    // Перевірка критичних полів бійця
+                    const fighter = data.fighters[0];
+                    if (!fighter.firstName || !fighter.gameData) {
+                        console.error('Validation failed: fighter missing critical fields');
+                        return false;
+                    }
                 }
                 
-                // Перевірка що є хоч один боєць
-                if (data.fighters.length === 0) {
-                    console.error('Validation failed: no fighters');
-                    return false;
-                }
-                
-                // Перевірка критичних полів бійця
-                const fighter = data.fighters[0];
-                if (!fighter.firstName || !fighter.gameData) {
-                    console.error('Validation failed: fighter missing critical fields');
-                    return false;
-                }
-                
-                // Перевірка що є cash та stars
-                if (typeof data.gameState.cash !== 'number') {
-                    console.error('Validation failed: invalid cash');
-                    return false;
+                // Якщо є gameState - валідуємо його
+                if (data.gameState) {
+                    if (typeof data.gameState !== 'object') {
+                        console.error('Validation failed: gameState not an object');
+                        return false;
+                    }
+                    
+                    if (typeof data.gameState.cash !== 'number') {
+                        console.error('Validation failed: invalid cash');
+                        return false;
+                    }
                 }
                 
                 console.log('✅ Data validation passed');
@@ -4862,9 +4872,35 @@ const BOXER_AVATARS = [
                 console.log('⚠️ No character data found - creating new');
                 characterData = {
                     name: 'Новий гравець',
+                    firstName: 'Новий',
+                    lastName: 'Гравець',
+                    age: 25,
+                    city: 'Місто',
+                    country: 'Країна',
                     createdAt: new Date().toISOString(),
-                    dataVersion: CURRENT_DATA_VERSION  // ВАЖЛИВО! Версія даних
+                    dataVersion: CURRENT_DATA_VERSION
                 };
+            } else {
+                console.log('✅ Character data loaded:', characterData.name, characterData.city, characterData.country);
+                
+                // ✅ ВАЛІДАЦІЯ: Якщо немає обов'язкових полів - додати їх
+                if (!characterData.name) {
+                    characterData.name = 'Новий гравець';
+                }
+                if (!characterData.firstName) {
+                    const nameParts = (characterData.name || 'Новий Гравець').split(' ');
+                    characterData.firstName = nameParts[0] || 'Новий';
+                    characterData.lastName = nameParts.slice(1).join(' ') || 'Гравець';
+                }
+                if (!characterData.city) {
+                    characterData.city = 'Місто';
+                }
+                if (!characterData.country) {
+                    characterData.country = 'Країна';
+                }
+                if (!characterData.age) {
+                    characterData.age = 25;
+                }
             }
             
             // Initialize fighters array and gameState

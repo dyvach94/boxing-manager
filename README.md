@@ -1,26 +1,34 @@
-# 🥊 Boxing Manager v1.4 STABLE
+# 🥊 Boxing Manager v1.5 HOTFIX
 
-**Telegram Mini App** - Станьте чемпіоном світу з боксу!
-
-## 🎯 v1.4 STABLE - Silent Recovery
+## 🔥 v1.5 - Manager Data Fix
 
 ### Виправлено:
-- ✅ **"undefined, undefined"** в профілі менеджера
-- ✅ **Кнопка Backup прихована** (автоматичний режим)
-- ✅ **Тихе відновлення** (користувач не бачить помилок)
+- ✅ Завантаження даних менеджера (ім'я, місто, країна)
+- ✅ Гнучка валідація (дозволяє partial data)
+- ✅ Fallbacks для всіх полів
 
-### Як працює:
+### Проблема була:
 ```
-Помилка даних → 🔄 Автовідновлення з backup → ✅ Гра працює
+startGame() → save manager data
+confirmFighterSelection() → load data
+validateCharacterData() → ❌ REJECT (no fighters)
+Result: Uses fallback "Новий гравець", "Місто", "Країна"
+```
 
-Користувач НЕ БАЧИТЬ:
-❌ Toast повідомлень
-❌ Кнопки Recovery
-❌ Помилок
+### Рішення:
+```javascript
+// 1. Гнучка валідація
+if (!data.fighters && !data.name) {
+    return false; // Тільки якщо ВЗАГАЛІ порожні
+}
+// Дозволяємо partial data!
 
-Користувач БАЧИТЬ:
-✅ Гра просто працює
-✅ Дані завжди збережені
+// 2. Завантаження з fallbacks
+if (characterData) {
+    if (!characterData.name) characterData.name = 'Новий гравець';
+    if (!characterData.city) characterData.city = 'Місто';
+    if (!characterData.country) characterData.country = 'Країна';
+}
 ```
 
 ---
@@ -36,73 +44,20 @@ python3 -m http.server 8000
 
 ---
 
-## 📁 Structure
-
-```
-boxing-manager/
-├── index.html (2.0 MB)
-├── css/styles.css (113 KB)
-├── js/game.js (1.9 MB) ← Git LFS!
-└── README.md
-```
-
----
-
-## 🛡️ Data Protection
-
-### 3-Level Backup:
-```
-backup1 → backup2 → backup3
-```
-
-### Silent Recovery:
-```
-Corrupted data → Try backup1
-Failed → Try backup2
-Failed → Try backup3
-Success → ✅ Continue playing
-```
-
-### No User Interruption:
-- No toasts
-- No alerts
-- No visible errors
-- Just works™
-
----
-
-## ✨ Features
+## ✨ All Features
 
 - 🥊 Realistic fights
-- 🏆 Career + TOP-100
+- 🏆 Career mode
 - 🎯 Tournaments
-- 👥 Team (18 members)
+- 👥 Team system
 - 💪 Training
 - 💎 VIP
 - 🏅 Achievements
-- 🛡️ **Silent data protection**
-- ☁️ Cloud sync
-
----
-
-## 📊 Changelog
-
-### v1.4 (29.12.2024)
-- ✅ Fixed "undefined, undefined"
-- ✅ Hidden Backup button
-- ✅ Silent recovery (no toasts)
-
-### v1.3
-- ✅ 3-level backups
-- ✅ Data validation
-- ✅ Auto-recovery
+- 🛡️ **Data protection**
+- 📝 **Manager profile**
 
 ---
 
 ## 📝 License
 
 MIT License
-
----
-
-**⭐ SEAMLESS USER EXPERIENCE - NO INTERRUPTIONS!**
