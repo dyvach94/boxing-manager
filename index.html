@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Boxing Manager v1.2</title>
+    <title>Boxing Manager v1.3</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -17,7 +17,7 @@
             </div>
             <div class="loading-text">ЗАВАНТАЖЕННЯ...</div>
             <div style="position: absolute; bottom: 20px; width: 100%; text-align: center; color: var(--gold); font-size: 0.8rem; opacity: 0.6;">
-                1.2 RECOVERY - Backup System
+                1.3 MIGRATION - Data Protection
             </div>
         </div>
     </div>
@@ -1629,15 +1629,34 @@ const BOXER_AVATARS = [
                 return; // Skip save
             }
             
-            // ✅ BACKUP: Зберегти попередню версію
+            // ✅ ВАЛІДАЦІЯ перед збереженням
+            if (!validateCharacterData(characterData)) {
+                console.error('❌ Refusing to save invalid data!');
+                showToast('❌ Помилка', 'Не можу зберегти невалідні дані', 'error');
+                return;
+            }
+            
+            // ✅ РОТАЦІЯ BACKUPS: backup3 ← backup2 ← backup1 ← current
             try {
+                const backup1 = localStorage.getItem('boxingManager_character_backup');
+                const backup2 = localStorage.getItem('boxingManager_character_backup2');
+                
+                // Зсув backups
+                if (backup2) {
+                    localStorage.setItem('boxingManager_character_backup3', backup2);
+                }
+                if (backup1) {
+                    localStorage.setItem('boxingManager_character_backup2', backup1);
+                }
+                
+                // Поточні дані → backup1
                 const oldData = localStorage.getItem('boxingManager_character');
                 if (oldData) {
                     localStorage.setItem('boxingManager_character_backup', oldData);
-                    console.log('💾 Backup created');
+                    console.log('💾 Backups rotated (3 versions saved)');
                 }
             } catch (e) {
-                console.error('Backup error:', e);
+                console.error('Backup rotation error:', e);
             }
             
             // КРИТИЧНО: Оновити кеш з НОВИМИ даними
@@ -1645,7 +1664,14 @@ const BOXER_AVATARS = [
             cacheTimestamp = Date.now();
             
             // Зберегти в localStorage (швидко)
-            localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+            try {
+                localStorage.setItem('boxingManager_character', JSON.stringify(characterData));
+                console.log('💾 Data saved successfully');
+            } catch (e) {
+                console.error('❌ CRITICAL: Save failed!', e);
+                showToast('❌ Помилка', 'Не вдалося зберегти дані', 'error');
+                return;
+            }
             
             if (immediate) {
                 // Критична дія - зберегти одразу
@@ -1660,6 +1686,109 @@ const BOXER_AVATARS = [
                 }, SAVE_DELAY);
             }
         }
+        
+        // ===== VALIDATION & RECOVERY SYSTEM =====
+        
+        function validateCharacterData(data) {
+            try {
+                // Базові перевірки
+                if (!data || typeof data !== 'object') {
+                    console.error('Validation failed: not an object');
+                    return false;
+                }
+                
+                // Перевірка критичних полів
+                if (!data.fighters || !Array.isArray(data.fighters)) {
+                    console.error('Validation failed: no fighters array');
+                    return false;
+                }
+                
+                if (!data.gameState || typeof data.gameState !== 'object') {
+                    console.error('Validation failed: no gameState');
+                    return false;
+                }
+                
+                // Перевірка що є хоч один боєць
+                if (data.fighters.length === 0) {
+                    console.error('Validation failed: no fighters');
+                    return false;
+                }
+                
+                // Перевірка критичних полів бійця
+                const fighter = data.fighters[0];
+                if (!fighter.firstName || !fighter.gameData) {
+                    console.error('Validation failed: fighter missing critical fields');
+                    return false;
+                }
+                
+                // Перевірка що є cash та stars
+                if (typeof data.gameState.cash !== 'number') {
+                    console.error('Validation failed: invalid cash');
+                    return false;
+                }
+                
+                console.log('✅ Data validation passed');
+                return true;
+                
+            } catch (e) {
+                console.error('Validation error:', e);
+                return false;
+            }
+        }
+        
+        function tryRecoverFromBackup() {
+            console.log('🔄 Attempting recovery from backups...');
+            
+            // Спробувати backup1
+            try {
+                const backup1 = localStorage.getItem('boxingManager_character_backup');
+                if (backup1) {
+                    const parsed = JSON.parse(backup1);
+                    if (validateCharacterData(parsed)) {
+                        console.log('✅ Recovered from backup1');
+                        localStorage.setItem('boxingManager_character', backup1);
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.error('Backup1 failed:', e);
+            }
+            
+            // Спробувати backup2
+            try {
+                const backup2 = localStorage.getItem('boxingManager_character_backup2');
+                if (backup2) {
+                    const parsed = JSON.parse(backup2);
+                    if (validateCharacterData(parsed)) {
+                        console.log('✅ Recovered from backup2');
+                        localStorage.setItem('boxingManager_character', backup2);
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.error('Backup2 failed:', e);
+            }
+            
+            // Спробувати backup3
+            try {
+                const backup3 = localStorage.getItem('boxingManager_character_backup3');
+                if (backup3) {
+                    const parsed = JSON.parse(backup3);
+                    if (validateCharacterData(parsed)) {
+                        console.log('✅ Recovered from backup3');
+                        localStorage.setItem('boxingManager_character', backup3);
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.error('Backup3 failed:', e);
+            }
+            
+            console.error('❌ All backups failed');
+            return null;
+        }
+        
+        // ===== END VALIDATION & RECOVERY =====
         
         // OPTIMIZED: Load with cache
         function loadGameSync() {
@@ -1680,6 +1809,17 @@ const BOXER_AVATARS = [
                     return null;
                 }
                 
+                // ✅ СТВОРИТИ BACKUP ОДРАЗУ (якщо його ще немає)
+                const hasBackup = localStorage.getItem('boxingManager_character_backup');
+                if (!hasBackup && data) {
+                    console.log('💾 Creating initial backup...');
+                    localStorage.setItem('boxingManager_character_backup', data);
+                    
+                    // Також створюємо backup2 та backup3 для надійності
+                    localStorage.setItem('boxingManager_character_backup2', data);
+                    localStorage.setItem('boxingManager_character_backup3', data);
+                }
+                
                 let parsed;
                 
                 try {
@@ -1688,8 +1828,30 @@ const BOXER_AVATARS = [
                     console.error('❌ CRITICAL: Data parse error!', parseError);
                     console.error('Corrupted data:', data.substring(0, 100) + '...');
                     
-                    // ЗАХИСТ: Не видаляти дані, просто повідомити
-                    alert('⚠️ Дані пошкоджені!\n\nСпробуй відновити з Telegram Cloud або зв\'яжись з підтримкою.');
+                    // ✅ СПРОБУВАТИ ВІДНОВИТИ З BACKUP
+                    console.log('🔄 Trying to recover from backup...');
+                    const recovered = tryRecoverFromBackup();
+                    if (recovered) {
+                        showToast('🔄 Відновлено', 'Дані відновлено з backup', 'success');
+                        return recovered;
+                    }
+                    
+                    showToast('❌ Помилка', 'Дані пошкоджені і не вдалося відновити', 'error');
+                    return null;
+                }
+                
+                // ✅ ВАЛІДАЦІЯ ДАНИХ
+                if (!validateCharacterData(parsed)) {
+                    console.error('❌ Data validation failed!');
+                    
+                    // Спробувати відновити з backup
+                    const recovered = tryRecoverFromBackup();
+                    if (recovered) {
+                        showToast('🔄 Відновлено', 'Невалідні дані замінено на backup', 'warning');
+                        return recovered;
+                    }
+                    
+                    showToast('❌ Помилка', 'Дані невалідні', 'error');
                     return null;
                 }
                 
@@ -1704,9 +1866,14 @@ const BOXER_AVATARS = [
                         console.error('❌ CRITICAL: Migration error!', migrationError);
                         console.error('Stack:', migrationError.stack);
                         
-                        // ЗАХИСТ: Не ламати гру, використати дані as-is
-                        alert('⚠️ Помилка оновлення даних!\n\nГра може працювати нестабільно. Рекомендуємо скинути прогрес.');
-                        // Продовжити з непоміграними даними
+                        // Спробувати відновити з backup
+                        const recovered = tryRecoverFromBackup();
+                        if (recovered) {
+                            showToast('🔄 Відновлено', 'Помилка міграції - використано backup', 'warning');
+                            return recovered;
+                        }
+                        
+                        showToast('⚠️ Увага', 'Помилка оновлення даних', 'warning');
                     }
                 }
                 
@@ -1721,6 +1888,14 @@ const BOXER_AVATARS = [
             } catch (error) {
                 console.error('❌ CRITICAL: loadGameSync error!', error);
                 console.error('Stack:', error.stack);
+                
+                // Останній шанс - відновити з backup
+                const recovered = tryRecoverFromBackup();
+                if (recovered) {
+                    showToast('🔄 Відновлено', 'Критична помилка - використано backup', 'warning');
+                    return recovered;
+                }
+                
                 return null;
             }
         }
@@ -2085,19 +2260,67 @@ const BOXER_AVATARS = [
         // ✅ RECOVERY FUNCTION
         function recoverFromBackup() {
             try {
-                const backup = localStorage.getItem('boxingManager_character_backup');
+                const backup1 = localStorage.getItem('boxingManager_character_backup');
+                const backup2 = localStorage.getItem('boxingManager_character_backup2');
+                const backup3 = localStorage.getItem('boxingManager_character_backup3');
                 
-                if (!backup) {
-                    showToast('❌ Помилка', 'Немає backup для відновлення', 'error');
+                if (!backup1 && !backup2 && !backup3) {
+                    showToast('ℹ️ Немає backups', 'Backups створюються автоматично при грі', 'info');
                     return;
                 }
                 
-                const confirmed = confirm('🔄 ВІДНОВЛЕННЯ З BACKUP\n\nВідновити попереднє збереження?\n\n⚠️ Поточний прогрес буде втрачено!');
+                // Показати список доступних backups
+                let message = '🔄 ДОСТУПНІ BACKUPS:\n\n';
+                let backupCount = 0;
                 
-                if (!confirmed) return;
+                if (backup1) {
+                    try {
+                        const data = JSON.parse(backup1);
+                        const lastSave = data._lastSave ? new Date(data._lastSave).toLocaleString('uk-UA') : 'Невідомо';
+                        const cash = data.gameState?.cash || 0;
+                        message += `1️⃣ Backup 1 (найновіший)\n   💵 $${cash.toLocaleString()}\n   📅 ${lastSave}\n\n`;
+                        backupCount++;
+                    } catch (e) {}
+                }
+                
+                if (backup2) {
+                    try {
+                        const data = JSON.parse(backup2);
+                        const lastSave = data._lastSave ? new Date(data._lastSave).toLocaleString('uk-UA') : 'Невідомо';
+                        const cash = data.gameState?.cash || 0;
+                        message += `2️⃣ Backup 2\n   💵 $${cash.toLocaleString()}\n   📅 ${lastSave}\n\n`;
+                        backupCount++;
+                    } catch (e) {}
+                }
+                
+                if (backup3) {
+                    try {
+                        const data = JSON.parse(backup3);
+                        const lastSave = data._lastSave ? new Date(data._lastSave).toLocaleString('uk-UA') : 'Невідомо';
+                        const cash = data.gameState?.cash || 0;
+                        message += `3️⃣ Backup 3 (найстаріший)\n   💵 $${cash.toLocaleString()}\n   📅 ${lastSave}\n\n`;
+                        backupCount++;
+                    } catch (e) {}
+                }
+                
+                message += '⚠️ Поточний прогрес буде втрачено!\n\nВведи номер backup (1-' + backupCount + '):';
+                
+                const choice = prompt(message);
+                
+                if (!choice) return;
+                
+                let selectedBackup = null;
+                if (choice === '1' && backup1) selectedBackup = backup1;
+                else if (choice === '2' && backup2) selectedBackup = backup2;
+                else if (choice === '3' && backup3) selectedBackup = backup3;
+                
+                if (!selectedBackup) {
+                    showToast('❌ Помилка', 'Невірний вибір', 'error');
+                    return;
+                }
                 
                 // Відновити
-                localStorage.setItem('boxingManager_character', backup);
+                localStorage.setItem('boxingManager_character', selectedBackup);
                 
                 showToast('✅ Успіх!', 'Дані відновлено! Перезавантажуємо...', 'success');
                 
