@@ -2804,6 +2804,28 @@ const BOXER_AVATARS = [
             document.getElementById('careerKnockouts').textContent = gameState.knockouts || 0;
             document.getElementById('careerRivalriesCount').textContent = (gameState.rivalries || []).length;
             
+            // ✅ ПЕРЕВІРКА COOLDOWN!
+            if (!fighter.fightCooldown) {
+                fighter.fightCooldown = {};
+            }
+            
+            console.log('🔍 ПЕРЕВІРКА КУЛДАУНА (careerScreen):');
+            console.log('  fightCooldown:', fighter.fightCooldown);
+            console.log('  nextAvailable:', fighter.fightCooldown.nextAvailable);
+            console.log('  Зараз:', Date.now());
+            
+            if (fighter.fightCooldown.nextAvailable && fighter.fightCooldown.nextAvailable > Date.now()) {
+                console.log('✅ КУЛДАУН АКТИВНИЙ - показую екран відпочинку');
+                showFightCooldown(fighter.fightCooldown.nextAvailable);
+                return;
+            } else {
+                console.log('✅ КУЛДАУН ЗАКІНЧИВСЯ - показую опонентів');
+            }
+            
+            // Hide cooldown, show fights
+            document.getElementById('fightsCooldown').style.display = 'none';
+            document.getElementById('fightsContent').style.display = 'block';
+            
             // Load opponents (same as openFights)
             loadOpponents();
         }
@@ -6955,6 +6977,9 @@ function getSponsorBonus(fighter) {
             const cooldownDiv = document.getElementById('fightsCooldown');
             const fightsContent = document.getElementById('fightsContent');
             
+            // Визначаємо поточний екран
+            const currentScreen = document.querySelector('.screen.active')?.id || 'careerScreen';
+            
             cooldownDiv.style.display = 'block';
             fightsContent.style.display = 'none';
             
@@ -6979,7 +7004,13 @@ function getSponsorBonus(fighter) {
                     // Show fights content again
                     cooldownDiv.style.display = 'none';
                     fightsContent.style.display = 'block';
-                    loadFightsScreen();
+                    
+                    // Reload правильний екран
+                    if (currentScreen === 'careerScreen') {
+                        loadCareerScreen();
+                    } else {
+                        loadFightsScreen();
+                    }
                     return;
                 }
                 
@@ -7014,7 +7045,16 @@ function getSponsorBonus(fighter) {
             saveGameSync(characterData);
             
             if (fightCooldownTimer) clearInterval(fightCooldownTimer);
-            loadFightsScreen();
+            
+            // Визначаємо поточний екран
+            const currentScreen = document.querySelector('.screen.active')?.id || 'careerScreen';
+            
+            // Reload правильний екран
+            if (currentScreen === 'careerScreen') {
+                loadCareerScreen();
+            } else {
+                loadFightsScreen();
+            }
         }
         
         function generateOpponents(fighter, gameState) {
@@ -7481,8 +7521,9 @@ function getSponsorBonus(fighter) {
             // Store opponent and show tactics modal
             pendingFightOpponent = opponent;
             
-            // Запам'ятовуємо що прийшли з екрану боїв (кар'єра)
-            previousScreen = 'fightsScreen';
+            // Запам'ятовуємо що прийшли з екрану кар'єри
+            // (careerScreen включає в себе опонентів - це НЕ fightsScreen!)
+            previousScreen = 'careerScreen';
             
             showTacticsModal();
         }
@@ -8640,14 +8681,30 @@ function getSponsorBonus(fighter) {
                     fighter.gameData.peakRanking = fighter.gameData.ranking;
                 }
                 
-                // UPDATE TOP 100: Update player's position
+                // UPDATE TOP 100: Update player's position and RERANK everyone
                 if (gameState.top100Fighters && gameState.top100Fighters[fighter.id || 0]) {
                     const top100 = gameState.top100Fighters[fighter.id || 0];
                     const playerEntry = top100.find(f => f.isPlayer);
+                    
                     if (playerEntry) {
-                        playerEntry.rank = newRanking;
+                        // Оновлюємо дані гравця
                         playerEntry.record = fighter.gameData.record;
                         playerEntry.rating = fighter.gameData.rating;
+                        
+                        // ✅ ПЕРЕСОРТОВУЄМО ВЕСЬ СПИСОК!
+                        // Видаляємо гравця зі старої позиції
+                        const playerIndex = top100.indexOf(playerEntry);
+                        top100.splice(playerIndex, 1);
+                        
+                        // Вставляємо на нову позицію (newRanking - 1, бо індекс з 0)
+                        top100.splice(newRanking - 1, 0, playerEntry);
+                        
+                        // Оновлюємо ранги ВСІХ бійців
+                        top100.forEach((f, index) => {
+                            f.rank = index + 1;
+                        });
+                        
+                        console.log(`📊 ТОП-100 оновлено: гравець з #${oldRanking} → #${newRanking}`);
                     }
                 }
                 
@@ -8814,14 +8871,30 @@ function getSponsorBonus(fighter) {
                 fighter.gameData.ranking = Math.min(100, fighter.gameData.ranking + rankingLoss);
                 const newRanking = fighter.gameData.ranking;
                 
-                // UPDATE TOP 100: Update player's position
+                // UPDATE TOP 100: Update player's position and RERANK everyone
                 if (gameState.top100Fighters && gameState.top100Fighters[fighter.id || 0]) {
                     const top100 = gameState.top100Fighters[fighter.id || 0];
                     const playerEntry = top100.find(f => f.isPlayer);
+                    
                     if (playerEntry) {
-                        playerEntry.rank = newRanking;
+                        // Оновлюємо дані гравця
                         playerEntry.record = fighter.gameData.record;
                         playerEntry.rating = fighter.gameData.rating;
+                        
+                        // ✅ ПЕРЕСОРТОВУЄМО ВЕСЬ СПИСОК!
+                        // Видаляємо гравця зі старої позиції
+                        const playerIndex = top100.indexOf(playerEntry);
+                        top100.splice(playerIndex, 1);
+                        
+                        // Вставляємо на нову позицію (newRanking - 1, бо індекс з 0)
+                        top100.splice(newRanking - 1, 0, playerEntry);
+                        
+                        // Оновлюємо ранги ВСІХ бійців
+                        top100.forEach((f, index) => {
+                            f.rank = index + 1;
+                        });
+                        
+                        console.log(`📊 ТОП-100 оновлено: гравець з #${oldRanking} → #${newRanking}`);
                     }
                 }
                 
@@ -9148,9 +9221,14 @@ function getSponsorBonus(fighter) {
             }
             
             // Визначаємо куди повертатись
-            if (previousScreen === 'fightsScreen') {
+            if (previousScreen === 'careerScreen') {
                 // Прийшли з кар'єри - повертаємось в кар'єру
-                console.log('→ Повертаємось на fightsScreen (кар\'єра)');
+                console.log('→ Повертаємось на careerScreen (кар\'єра)');
+                showScreen('careerScreen');
+                loadCareerScreen();
+            } else if (previousScreen === 'fightsScreen') {
+                // Прийшли з fightsScreen (старий екран) - повертаємось туди
+                console.log('→ Повертаємось на fightsScreen');
                 showScreen('fightsScreen');
                 loadFightsScreen();
             } else {
