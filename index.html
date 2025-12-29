@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Boxing Manager v1.6</title>
+    <title>Boxing Manager v1.7</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -17,7 +17,7 @@
             </div>
             <div class="loading-text">ЗАВАНТАЖЕННЯ...</div>
             <div style="position: absolute; bottom: 20px; width: 100%; text-align: center; color: var(--gold); font-size: 0.8rem; opacity: 0.6;">
-                1.6 POLISH - Tutorial + UX
+                1.7 CONTENT - More Tournaments
             </div>
         </div>
     </div>
@@ -2351,32 +2351,27 @@ const BOXER_AVATARS = [
             {
                 title: '👋 ВІТАЄМО!',
                 text: 'Давай швидко покажу як тут все працює!',
-                element: null,
-                position: 'center'
+                element: null
             },
             {
                 title: '👤 ТВІЙ БОЄЦЬ',
                 text: 'Це твій боєць! Тут ти бачиш його статистику та рекорд. Клікни на картку щоб побачити детальну інформацію.',
-                element: '.fighter-card',
-                position: 'bottom'
+                element: '.fighter-card'
             },
             {
                 title: '💪 ТРЕНУВАННЯ',
                 text: 'Тут ти можеш тренувати свого бійця! Кожне тренування покращує його характеристики. Тренування відновлюються навіть коли ти офлайн!',
-                element: '.main-action-button[onclick*="openTraining"]',
-                position: 'top'
+                element: '.main-action-button[onclick*="openTraining"]'
             },
             {
                 title: '🥊 ПОЄДИНКИ',
                 text: 'Тут ти вибираєш опонента та б\'єшся! Перемагай, отримуй гроші та піднімайся в рейтингу. Удачі!',
-                element: '.main-action-button[onclick*="openFights"]',
-                position: 'top'
+                element: '.main-action-button[onclick*="openFights"]'
             },
             {
                 title: '💎 VIP БОНУС',
                 text: 'Тобі подарували 3 дні VIP! VIP дає +20% до всіх нагород. Насолоджуйся грою! 🎉',
-                element: '.vip-quick-btn',
-                position: 'bottom'
+                element: '.vip-quick-btn'
             }
         ];
         
@@ -2415,48 +2410,34 @@ const BOXER_AVATARS = [
                 nextBtn.textContent = 'Далі →';
             }
             
-            // Позиціонувати spotlight та tooltip
-            const overlay = document.getElementById('tutorialOverlay');
+            // ✅ ЗАВЖДИ ПО ЦЕНТРУ!
             const spotlight = document.getElementById('tutorialSpotlight');
             const content = document.getElementById('tutorialContent');
             
+            // Контент завжди по центру
+            content.style.left = '50%';
+            content.style.top = '50%';
+            content.style.transform = 'translate(-50%, -50%)';
+            content.style.bottom = 'auto';
+            
+            // Spotlight показує елемент (якщо є)
             if (step.element) {
                 const element = document.querySelector(step.element);
                 if (element) {
                     const rect = element.getBoundingClientRect();
                     
-                    // Spotlight
                     spotlight.style.display = 'block';
                     spotlight.style.left = (rect.left - 8) + 'px';
                     spotlight.style.top = (rect.top - 8) + 'px';
                     spotlight.style.width = (rect.width + 16) + 'px';
                     spotlight.style.height = (rect.height + 16) + 'px';
-                    
-                    // Tooltip позиція
-                    if (step.position === 'bottom') {
-                        content.style.left = Math.max(20, Math.min(window.innerWidth - 340, rect.left)) + 'px';
-                        content.style.top = (rect.bottom + 20) + 'px';
-                        content.style.bottom = 'auto';
-                    } else if (step.position === 'top') {
-                        content.style.left = Math.max(20, Math.min(window.innerWidth - 340, rect.left)) + 'px';
-                        content.style.bottom = (window.innerHeight - rect.top + 20) + 'px';
-                        content.style.top = 'auto';
-                    }
                 } else {
-                    // Центр якщо елемент не знайдено
+                    // Елемент не знайдено - ховаємо spotlight
                     spotlight.style.display = 'none';
-                    content.style.left = '50%';
-                    content.style.top = '50%';
-                    content.style.transform = 'translate(-50%, -50%)';
-                    content.style.bottom = 'auto';
                 }
             } else {
-                // Центр для першого кроку
+                // Немає елемента - ховаємо spotlight
                 spotlight.style.display = 'none';
-                content.style.left = '50%';
-                content.style.top = '50%';
-                content.style.transform = 'translate(-50%, -50%)';
-                content.style.bottom = 'auto';
             }
             
             hapticLight();
@@ -3484,9 +3465,133 @@ const BOXER_AVATARS = [
             const hoursLeft = Math.ceil(timeLeft / (60 * 60 * 1000));
             
             const tournaments = [
-                { name: "Новачки", minRating: 0, maxRating: 150, participants: 8, prize: 5000, entryFee: 500 },
-                { name: "Професіонали", minRating: 100, maxRating: 400, participants: 8, prize: 15000, entryFee: 2000 },
-                { name: "Чемпіонат", minRating: 300, maxRating: 999, participants: 8, prize: 50000, entryFee: 5000 }
+                // БАЗОВІ ТУРНІРИ
+                { 
+                    name: "🥉 Новачки", 
+                    minRating: 0, 
+                    maxRating: 150, 
+                    participants: 8, 
+                    prize: 5000, 
+                    entryFee: 500,
+                    stars: 10,
+                    desc: "Перший турнір для початківців"
+                },
+                { 
+                    name: "🥈 Професіонали", 
+                    minRating: 100, 
+                    maxRating: 400, 
+                    participants: 8, 
+                    prize: 15000, 
+                    entryFee: 2000,
+                    stars: 25,
+                    desc: "Для досвідчених боксерів"
+                },
+                { 
+                    name: "🥇 Чемпіонат", 
+                    minRating: 300, 
+                    maxRating: 999, 
+                    participants: 8, 
+                    prize: 50000, 
+                    entryFee: 5000,
+                    stars: 50,
+                    desc: "Тільки для найкращих!"
+                },
+                
+                // ВАГОВІ КАТЕГОРІЇ
+                {
+                    name: "🪶 Легка вага",
+                    minRating: 50,
+                    maxRating: 300,
+                    participants: 8,
+                    prize: 20000,
+                    entryFee: 1500,
+                    stars: 20,
+                    desc: "60-70 кг • Швидкість та витривалість"
+                },
+                {
+                    name: "⚖️ Середня вага",
+                    minRating: 150,
+                    maxRating: 500,
+                    participants: 8,
+                    prize: 30000,
+                    entryFee: 3000,
+                    stars: 30,
+                    desc: "70-85 кг • Баланс сили та швидкості"
+                },
+                {
+                    name: "🦍 Важка вага",
+                    minRating: 250,
+                    maxRating: 999,
+                    participants: 8,
+                    prize: 45000,
+                    entryFee: 4000,
+                    stars: 40,
+                    desc: "85+ кг • Нокаутна сила!"
+                },
+                
+                // РЕГІОНАЛЬНІ ТУРНІРИ
+                {
+                    name: "🇪🇺 Кубок Європи",
+                    minRating: 200,
+                    maxRating: 600,
+                    participants: 8,
+                    prize: 35000,
+                    entryFee: 3500,
+                    stars: 35,
+                    desc: "Європейський чемпіонат"
+                },
+                {
+                    name: "🇺🇸 USA Championship",
+                    minRating: 300,
+                    maxRating: 700,
+                    participants: 8,
+                    prize: 55000,
+                    entryFee: 5500,
+                    stars: 55,
+                    desc: "Американський чемпіонат"
+                },
+                {
+                    name: "🌏 Чемпіонат Азії",
+                    minRating: 250,
+                    maxRating: 650,
+                    participants: 8,
+                    prize: 40000,
+                    entryFee: 4000,
+                    stars: 45,
+                    desc: "Азійський чемпіонат"
+                },
+                
+                // ЕЛІТНІ ТУРНІРИ
+                {
+                    name: "👑 Турнір Чемпіонів",
+                    minRating: 500,
+                    maxRating: 999,
+                    participants: 8,
+                    prize: 100000,
+                    entryFee: 10000,
+                    stars: 100,
+                    desc: "⭐ Тільки для ТОП-20!"
+                },
+                {
+                    name: "💎 Елітний кубок",
+                    minRating: 400,
+                    maxRating: 999,
+                    participants: 8,
+                    prize: 75000,
+                    entryFee: 7500,
+                    stars: 75,
+                    desc: "Престижний турнір"
+                },
+                {
+                    name: "🔥 Grand Prix",
+                    minRating: 350,
+                    maxRating: 999,
+                    participants: 8,
+                    prize: 65000,
+                    entryFee: 6000,
+                    stars: 65,
+                    desc: "Міжнародний турнір"
+                }
             ];
             
             const container = document.getElementById('availableTournaments');
@@ -3546,13 +3651,15 @@ const BOXER_AVATARS = [
                     
                     return `
                         <div style="background: rgba(255,255,255,0.05); border: 2px solid ${canEnter ? 'var(--gold)' : 'rgba(255,255,255,0.1)'}; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; ${onCooldown ? 'opacity: 0.6;' : ''}">
-                            <h3 style="margin: 0 0 0.75rem 0; font-size: 1.2rem; color: ${canEnter ? 'var(--gold)' : 'white'};">${t.name}</h3>
+                            <h3 style="margin: 0 0 0.5rem 0; font-size: 1.2rem; color: ${canEnter ? 'var(--gold)' : 'white'};">${t.name}</h3>
+                            ${t.desc ? `<div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.75rem;">${t.desc}</div>` : ''}
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.85rem;">
                                 <div>👥 ${t.participants} учасників</div>
-                                <div>💰 Приз: $${t.prize.toLocaleString()}</div>
+                                <div>💰 $${t.prize.toLocaleString()}</div>
                                 <div>🎫 Внесок: $${t.entryFee.toLocaleString()}</div>
-                                <div>⭐ Рейтинг: ${t.minRating}-${t.maxRating}</div>
+                                <div>⭐ +${t.stars || 0} зірок</div>
                             </div>
+                            <div style="font-size: 0.8rem; opacity: 0.6; margin-bottom: 0.5rem;">Рейтинг: ${t.minRating}-${t.maxRating}</div>
                             <button onclick="enterTournament('${t.name}')" ${!canEnter ? 'disabled' : ''} style="width: 100%; padding: 0.75rem; background: ${canEnter ? 'var(--gold)' : 'rgba(255,255,255,0.1)'}; color: ${canEnter ? '#1a1a2e' : 'rgba(255,255,255,0.3)'}; border: none; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: ${canEnter ? 'pointer' : 'not-allowed'}; transition: all 0.3s;">
                                 ${canEnter ? '⚡ ВСТУПИТИ' : `🔒 ${reason}`}
                             </button>

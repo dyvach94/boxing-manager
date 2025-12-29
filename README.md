@@ -1,24 +1,42 @@
-# 🥊 Boxing Manager v1.6 POLISH
+# 🥊 Boxing Manager v1.7 CONTENT
 
-## ✨ v1.6 - Tutorial + UX Improvements
+## 🎮 v1.7 - 12 ТУРНІРІВ!
 
-### Нове:
-- ✅ **Interactive Tutorial** (5 кроків)
-- ✅ **Spotlight System** (підсвітка елементів)
-- ✅ **Smooth Onboarding** (для нових гравців)
+### Було: 3 турніри
+### Стало: 12 турнірів!
 
-### Tutorial Кроки:
-1. 👋 Вітання
-2. 👤 Показ бійця
-3. 💪 Показ тренування
-4. 🥊 Показ боїв
-5. 💎 Показ VIP бонусу
+---
 
-### Як працює:
-- Автоматично для нових гравців
-- Можна пропустити
-- Spotlight на важливі елементи
-- Зберігається прогрес
+## 🏆 НОВІ ТУРНІРИ:
+
+### БАЗОВІ (3)
+- 🥉 Новачки - $5,000 + 10⭐
+- 🥈 Професіонали - $15,000 + 25⭐
+- 🥇 Чемпіонат - $50,000 + 50⭐
+
+### ВАГОВІ КАТЕГОРІЇ (3)
+- 🪶 Легка вага - $20,000 + 20⭐
+- ⚖️ Середня вага - $30,000 + 30⭐
+- 🦍 Важка вага - $45,000 + 40⭐
+
+### РЕГІОНАЛЬНІ (3)
+- 🇪🇺 Кубок Європи - $35,000 + 35⭐
+- 🇺🇸 USA Championship - $55,000 + 55⭐
+- 🌏 Чемпіонат Азії - $40,000 + 45⭐
+
+### ЕЛІТНІ (3)
+- 👑 Турнір Чемпіонів - $100,000 + 100⭐
+- 💎 Елітний кубок - $75,000 + 75⭐
+- 🔥 Grand Prix - $65,000 + 65⭐
+
+---
+
+## ⭐ FEATURES:
+
+- Кожен турнір має опис
+- Показує скільки зірок отримаєш
+- Різні вимоги рейтингу
+- Різні призи
 
 ---
 
@@ -33,38 +51,10 @@ python3 -m http.server 8000
 
 ---
 
-## ✨ All Features
-
-- 🥊 Realistic fights
-- 🏆 Career mode
-- 🎯 Tournaments
-- 👥 Team system
-- 💪 Training
-- 💎 VIP
-- 🏅 Achievements
-- 🛡️ Data protection
-- 📝 Manager profile
-- **✨ Interactive tutorial**
-
----
-
-## 📊 Changelog
-
-### v1.6 (30.12.2024)
-- ✅ Interactive tutorial
-- ✅ Spotlight system
-- ✅ Better onboarding
-
-### v1.5
-- ✅ Manager data fix
-- ✅ Flexible validation
-
----
-
 ## 📝 License
 
 MIT License
 
 ---
 
-**⭐ NEW PLAYER FRIENDLY - EASY TO START!**
+**⭐ 12 ТУРНІРІВ - 4X БІЛЬШЕ КОНТЕНТУ!**
