@@ -4368,7 +4368,8 @@
                     <button class="vip-quick-btn" onclick="hapticMedium(); openStarsShop()" 
                             style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                                    margin-left: 0.5rem; 
-                                   font-size: 1.2rem;">
+                                   font-size: 1.3rem;
+                                   padding: 0.5rem 0.8rem;">
                         🛒
                     </button>
                 </div>
@@ -16905,98 +16906,60 @@ function refreshMarket() {
             
             const categories = [
                 {
-                    name: '⭐ Купити Game Stars',
+                    name: '⭐ Game Stars',
                     items: [
+                        {
+                            id: 'stars_20',
+                            icon: '⭐',
+                            name: '20 Game Stars',
+                            desc: 'Базовий пакет',
+                            stars: 10,
+                            action: () => buyGameStarsAction(20)
+                        },
                         {
                             id: 'stars_50',
                             icon: '⭐',
                             name: '50 Game Stars',
-                            desc: 'Базовий пакет',
-                            stars: 10,
+                            desc: '+10 бонус!',
+                            stars: 20,
                             action: () => buyGameStarsAction(50)
                         },
                         {
-                            id: 'stars_120',
+                            id: 'stars_100',
                             icon: '⭐',
-                            name: '120 Game Stars',
+                            name: '100 Game Stars',
                             desc: '+20 бонус!',
-                            stars: 20,
-                            badge: '+20 🎁',
-                            action: () => buyGameStarsAction(120)
-                        },
-                        {
-                            id: 'stars_300',
-                            icon: '⭐',
-                            name: '300 Game Stars',
-                            desc: '+60 бонус!',
-                            stars: 45,
-                            badge: '+60 🎁',
-                            recommended: true,
-                            action: () => buyGameStarsAction(300)
-                        },
-                        {
-                            id: 'stars_650',
-                            icon: '⭐',
-                            name: '650 Game Stars',
-                            desc: '+150 бонус!',
-                            stars: 90,
-                            badge: '+150 🎁',
-                            action: () => buyGameStarsAction(650)
-                        },
-                        {
-                            id: 'stars_1500',
-                            icon: '⭐',
-                            name: '1500 Game Stars',
-                            desc: '+500 бонус!',
-                            stars: 180,
-                            badge: '+500 🎁',
-                            action: () => buyGameStarsAction(1500)
+                            stars: 40,
+                            action: () => buyGameStarsAction(100)
                         }
                     ]
                 },
                 {
-                    name: '💰 Купити готівку',
+                    name: '💰 Гроші',
                     items: [
                         {
                             id: 'cash_small',
                             icon: '💵',
-                            name: '$25,000',
-                            desc: 'Малий пакет',
+                            name: 'Small Pack',
+                            desc: '$20,000',
                             stars: 10,
-                            action: () => buyCash(25000, 10)
+                            action: () => buyCash(20000, 10)
                         },
                         {
                             id: 'cash_medium',
                             icon: '💸',
-                            name: '$60,000',
-                            desc: 'Середній пакет',
+                            name: 'Medium Pack',
+                            desc: '$50,000',
                             stars: 20,
-                            action: () => buyCash(60000, 20)
+                            action: () => buyCash(50000, 20)
                         },
                         {
                             id: 'cash_large',
                             icon: '💰',
-                            name: '$150,000',
-                            desc: 'Великий пакет',
-                            stars: 45,
-                            recommended: true,
-                            action: () => buyCash(150000, 45)
-                        },
-                        {
-                            id: 'cash_mega',
-                            icon: '💎',
-                            name: '$350,000',
-                            desc: 'Мега пакет',
-                            stars: 90,
-                            action: () => buyCash(350000, 90)
-                        },
-                        {
-                            id: 'cash_ultra',
-                            icon: '👑',
-                            name: '$800,000',
-                            desc: 'Ультра пакет',
-                            stars: 180,
-                            action: () => buyCash(800000, 180)
+                            name: 'Large Pack',
+                            desc: '$100,000',
+                            stars: 40,
+                            action: () => buyCash(100000, 40)
                         }
                     ]
                 }
@@ -17007,7 +16970,7 @@ function refreshMarket() {
                             border-radius: 10px; padding: 0.75rem; margin-bottom: 1rem;">
                     <div style="font-size: 0.85rem; color: rgba(255,255,255,0.8); text-align: center;">
                         💎 Ці покупки використовують <b>Telegram Stars</b><br>
-                        Купуй Stars або конвертуй в готівку
+                        Оплата безпечна через Telegram
                     </div>
                 </div>
             `;
@@ -17021,21 +16984,16 @@ function refreshMarket() {
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                             ${category.items.map(item => `
-                                <div style="background: ${item.recommended ? 'linear-gradient(135deg, rgba(103, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%)' : 'rgba(255,255,255,0.03)'}; 
-                                            border: 1px solid ${item.recommended ? 'rgba(103, 126, 234, 0.4)' : item.disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)'}; 
+                                <div style="background: rgba(255,255,255,0.03); 
+                                            border: 1px solid ${item.disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)'}; 
                                             border-radius: 12px; 
                                             padding: 0.9rem;
-                                            position: relative;
                                             ${item.disabled ? 'opacity: 0.5;' : ''}">
-                                    ${item.recommended ? '<div style="position: absolute; top: -8px; right: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600;">💎 ВИГІДНО</div>' : ''}
                                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                                         <div style="font-size: 2rem;">${item.icon}</div>
                                         <div style="flex: 1;">
-                                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.2rem;">
-                                                <div style="font-size: 0.95rem; font-weight: 600; color: white;">
-                                                    ${item.name}
-                                                </div>
-                                                ${item.badge ? `<div style="background: rgba(255, 215, 0, 0.2); border: 1px solid rgba(255, 215, 0, 0.4); color: #FFD700; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">${item.badge}</div>` : ''}
+                                            <div style="font-size: 0.95rem; font-weight: 600; color: white; margin-bottom: 0.2rem;">
+                                                ${item.name}
                                             </div>
                                             <div style="font-size: 0.8rem; color: rgba(255,255,255,0.6);">
                                                 ${item.desc}
@@ -17071,18 +17029,12 @@ function refreshMarket() {
         
         async function starsShopBuy(itemId) {
             const items = {
-                // Game Stars
-                stars_50: { name: '50 Game Stars', desc: 'Базовий пакет', stars: 10, action: () => buyGameStarsAction(50) },
-                stars_120: { name: '120 Game Stars', desc: '+20 бонус!', stars: 20, action: () => buyGameStarsAction(120) },
-                stars_300: { name: '300 Game Stars', desc: '+60 бонус!', stars: 45, action: () => buyGameStarsAction(300) },
-                stars_650: { name: '650 Game Stars', desc: '+150 бонус!', stars: 90, action: () => buyGameStarsAction(650) },
-                stars_1500: { name: '1500 Game Stars', desc: '+500 бонус!', stars: 180, action: () => buyGameStarsAction(1500) },
-                // Cash
-                cash_small: { name: '$25,000', desc: 'Малий пакет', stars: 10, action: () => buyCash(25000, 10) },
-                cash_medium: { name: '$60,000', desc: 'Середній пакет', stars: 20, action: () => buyCash(60000, 20) },
-                cash_large: { name: '$150,000', desc: 'Великий пакет', stars: 45, action: () => buyCash(150000, 45) },
-                cash_mega: { name: '$350,000', desc: 'Мега пакет', stars: 90, action: () => buyCash(350000, 90) },
-                cash_ultra: { name: '$800,000', desc: 'Ультра пакет', stars: 180, action: () => buyCash(800000, 180) }
+                stars_20: { name: '20 Game Stars', desc: 'Базовий пакет', stars: 10, action: () => buyGameStarsAction(20) },
+                stars_50: { name: '50 Game Stars', desc: '+10 бонус!', stars: 20, action: () => buyGameStarsAction(50) },
+                stars_100: { name: '100 Game Stars', desc: '+20 бонус!', stars: 40, action: () => buyGameStarsAction(100) },
+                cash_small: { name: 'Small Cash Pack', desc: '$20,000', stars: 10, action: () => buyCash(20000, 10) },
+                cash_medium: { name: 'Medium Cash Pack', desc: '$50,000', stars: 20, action: () => buyCash(50000, 20) },
+                cash_large: { name: 'Large Cash Pack', desc: '$100,000', stars: 40, action: () => buyCash(100000, 40) }
             };
             
             const item = items[itemId];
@@ -17103,17 +17055,41 @@ function refreshMarket() {
                 // Reload shop
                 loadStarsShop();
                 
-                showToast('✅ Успіх!', `${item.name} додано!`, 'success');
+                showToast('✅ Успіх!', `${item.name} активовано!`, 'success');
             }
         }
         
-        // Buy Game Stars function
         function buyGameStarsAction(amount) {
             const data = loadGameSync();
             data.gameState.stars += amount;
             saveGameSync(data);
             loadGameData();
         }
+        
+        function hasActiveTraining(fighter) {
+            if (!fighter.training) return false;
+            return Object.values(fighter.training).some(t => t && t.endTime > Date.now());
+        }
+        
+        async function instantEnergy() {
+            const data = loadGameSync();
+            const fighter = data.fighters[data.activeFighterIndex];
+            fighter.gameData.energy = 100;
+            saveGameSync(data);
+            loadGameData();
+        }
+        
+        async function instantHeal() {
+            const data = loadGameSync();
+            const fighter = data.fighters[data.activeFighterIndex];
+            if (fighter.injury) {
+                delete fighter.injury;
+                saveGameSync(data);
+                loadGameData();
+            }
+        }
+        
+        async function skipAllTraining() {
             const data = loadGameSync();
             const fighter = data.fighters[data.activeFighterIndex];
             if (fighter.training) {
