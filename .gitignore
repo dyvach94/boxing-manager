@@ -1,7 +1,5 @@
 .DS_Store
 .vscode/
 *.swp
-node_modules/
 *.log
-*.tmp
-*.bak
+node_modules/

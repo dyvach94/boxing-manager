@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Boxing Manager v2.1 FINAL</title>
+    <title>Boxing Manager v2.2</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -17,7 +17,7 @@
             </div>
             <div class="loading-text">ЗАВАНТАЖЕННЯ...</div>
             <div style="position: absolute; bottom: 20px; width: 100%; text-align: center; color: var(--gold); font-size: 0.8rem; opacity: 0.6;">
-                2.1 FIXED - Fight Scoring Fixed
+                2.2 FIXES - Statistics, Tournaments, Team
             </div>
         </div>
     </div>
@@ -2124,7 +2124,7 @@ const BOXER_AVATARS = [
          * - Завжди тестуй на СТАРИХ save files!
          */
         
-        const CURRENT_DATA_VERSION = 3; // v3: Tournaments system
+        const CURRENT_DATA_VERSION = 4; // v4: Statistics (totalEarned, totalSpent, maxStreak)
         
         function migrateData(data) {
             // ВАЛІДАЦІЯ ВХІДНИХ ДАНИХ
@@ -2162,6 +2162,25 @@ const BOXER_AVATARS = [
                 data = migrateToV3(data);
                 data.dataVersion = 3;
                 console.log('✅ v3 complete');
+            }
+            
+            // Міграція v3 → v4 (Statistics)
+            if (data.dataVersion < 4) {
+                console.log('🔄 Migrating v3 → v4 (Statistics)...');
+                if (!data.gameState.totalEarned) {
+                    data.gameState.totalEarned = data.gameState.cash || 0;
+                }
+                if (!data.gameState.totalSpent) {
+                    data.gameState.totalSpent = 0;
+                }
+                if (!data.gameState.maxStreak) {
+                    data.gameState.maxStreak = data.gameState.winStreak || 0;
+                }
+                if (!data.gameState.totalLosses) {
+                    data.gameState.totalLosses = 0;
+                }
+                data.dataVersion = 4;
+                console.log('✅ v4 complete (totalEarned, totalSpent, maxStreak initialized)');
             }
             
             // ВАЛІДАЦІЯ ПІСЛЯ МІГРАЦІЇ
@@ -3734,19 +3753,11 @@ const BOXER_AVATARS = [
             container.innerHTML = members.map(member => {
                 const typeInfo = TEAM_MEMBER_TYPES[member.type];
                 
-                // Format bonuses
-                const bonuses = [];
-                if (member.bonuses.trainingBonus) bonuses.push({ icon: '📚', text: '+' + Math.round(member.bonuses.trainingBonus * 100) + '%' });
-                if (member.bonuses.powerBonus) bonuses.push({ icon: '💪', text: '+' + member.bonuses.powerBonus });
-                if (member.bonuses.healingSpeed) bonuses.push({ icon: '🏥', text: '-' + Math.round((1 - member.bonuses.healingSpeed) * 100) + '%' });
-                if (member.bonuses.injuryResistance) bonuses.push({ icon: '🛡️', text: '-' + Math.round(member.bonuses.injuryResistance * 100) + '%' });
-                if (member.bonuses.fightEarnings) bonuses.push({ icon: '💰', text: '+' + Math.round(member.bonuses.fightEarnings * 100) + '%' });
-                
                 return `
                     <div style="background: rgba(255,255,255,0.03); 
                                 border: 1px solid rgba(255,255,255,0.1); 
                                 border-radius: 12px; 
-                                padding: 1rem; 
+                                padding: 0.9rem; 
                                 margin-bottom: 0.75rem;">
                         
                         <!-- Header -->
@@ -3773,20 +3784,97 @@ const BOXER_AVATARS = [
                             </button>
                         </div>
                         
-                        <!-- Bonuses -->
-                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
-                            ${bonuses.map(bonus => `
-                                <div style="background: rgba(255,255,255,0.05); 
-                                            border: 1px solid rgba(255,255,255,0.1);
-                                            border-radius: 6px; 
-                                            padding: 0.4rem 0.6rem;
-                                            display: flex;
-                                            align-items: center;
-                                            gap: 0.3rem;">
-                                    <span style="font-size: 0.9rem;">${bonus.icon}</span>
-                                    <span style="font-size: 0.75rem; font-weight: 600; color: rgba(255,255,255,0.9);">${bonus.text}</span>
-                                </div>
-                            `).join('')}
+                        <!-- ⭐ БОНУСИ (РОЗГОРНУТО) -->
+                        <div style="background: rgba(255,215,0,0.05); 
+                                    border: 1px solid rgba(255,215,0,0.15); 
+                                    border-radius: 8px; 
+                                    padding: 0.75rem; 
+                                    margin-bottom: 0.75rem;">
+                            <div style="font-size: 0.7rem; color: rgba(255,215,0,0.7); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">
+                                ⭐ Бонуси:
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                                ${member.bonuses.trainingBonus ? `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.95rem;">📚</span>
+                                        <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                            Тренування <span style="color: #4ade80; font-weight: 600;">+${Math.round(member.bonuses.trainingBonus * 100)}%</span>
+                                        </span>
+                                    </div>
+                                ` : ''}
+                                ${member.bonuses.powerBonus ? `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.95rem;">💪</span>
+                                        <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                            Сила <span style="color: #4ade80; font-weight: 600;">+${member.bonuses.powerBonus}</span>
+                                        </span>
+                                    </div>
+                                ` : ''}
+                                ${member.bonuses.speedBonus ? `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.95rem;">⚡</span>
+                                        <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                            Швидкість <span style="color: #4ade80; font-weight: 600;">+${member.bonuses.speedBonus}</span>
+                                        </span>
+                                    </div>
+                                ` : ''}
+                                ${member.bonuses.staminaBonus ? `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.95rem;">🔋</span>
+                                        <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                            Витривалість <span style="color: #4ade80; font-weight: 600;">+${member.bonuses.staminaBonus}</span>
+                                        </span>
+                                    </div>
+                                ` : ''}
+                                ${member.bonuses.defenseBonus ? `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.95rem;">🛡️</span>
+                                        <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                            Захист <span style="color: #4ade80; font-weight: 600;">+${member.bonuses.defenseBonus}</span>
+                                        </span>
+                                    </div>
+                                ` : ''}
+                                ${member.bonuses.healingSpeed ? `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.95rem;">🏥</span>
+                                        <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                            Відновлення <span style="color: #4ade80; font-weight: 600;">${Math.round((1 - member.bonuses.healingSpeed) * 100)}% швидше</span>
+                                        </span>
+                                    </div>
+                                ` : ''}
+                                ${member.bonuses.injuryResistance ? `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.95rem;">🛡️</span>
+                                        <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                            Ризик травм <span style="color: #4ade80; font-weight: 600;">-${Math.round(member.bonuses.injuryResistance * 100)}%</span>
+                                        </span>
+                                    </div>
+                                ` : ''}
+                                ${member.bonuses.fightEarnings ? `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.95rem;">💰</span>
+                                        <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                            Заробіток <span style="color: #4ade80; font-weight: 600;">+${Math.round(member.bonuses.fightEarnings * 100)}%</span>
+                                        </span>
+                                    </div>
+                                ` : ''}
+                                ${member.bonuses.trainingDiscount ? `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.95rem;">💳</span>
+                                        <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                            Знижка на тренування <span style="color: #4ade80; font-weight: 600;">-${Math.round(member.bonuses.trainingDiscount * 100)}%</span>
+                                        </span>
+                                    </div>
+                                ` : ''}
+                                ${member.bonuses.trainingXP ? `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.95rem;">📈</span>
+                                        <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                            Досвід тренувань <span style="color: #4ade80; font-weight: 600;">+${Math.round(member.bonuses.trainingXP * 100)}%</span>
+                                        </span>
+                                    </div>
+                                ` : ''}
+                            </div>
                         </div>
                         
                         <!-- Salary -->
@@ -3907,6 +3995,83 @@ const BOXER_AVATARS = [
                                     ⚠️ ${member.missingRequirements.join(', ')}
                                 </div>
                             ` : ''}
+                            
+                            <!-- ✨ БОНУСИ (ОПИС) -->
+                            <div style="background: rgba(255,215,0,0.05); 
+                                        border: 1px solid rgba(255,215,0,0.15); 
+                                        border-radius: 8px; 
+                                        padding: 0.75rem; 
+                                        margin-bottom: 0.75rem;">
+                                <div style="font-size: 0.7rem; color: rgba(255,215,0,0.7); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">
+                                    ⭐ Бонуси:
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                                    ${member.bonuses.trainingBonus ? `
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <span style="font-size: 0.95rem;">📚</span>
+                                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                                Тренування <span style="color: #4ade80; font-weight: 600;">+${Math.round(member.bonuses.trainingBonus * 100)}%</span>
+                                            </span>
+                                        </div>
+                                    ` : ''}
+                                    ${member.bonuses.powerBonus ? `
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <span style="font-size: 0.95rem;">💪</span>
+                                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                                Сила <span style="color: #4ade80; font-weight: 600;">+${member.bonuses.powerBonus}</span>
+                                            </span>
+                                        </div>
+                                    ` : ''}
+                                    ${member.bonuses.healingSpeed ? `
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <span style="font-size: 0.95rem;">🏥</span>
+                                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                                Відновлення <span style="color: #4ade80; font-weight: 600;">${Math.round((1 - member.bonuses.healingSpeed) * 100)}% швидше</span>
+                                            </span>
+                                        </div>
+                                    ` : ''}
+                                    ${member.bonuses.injuryResistance ? `
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <span style="font-size: 0.95rem;">🛡️</span>
+                                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                                Травми <span style="color: #4ade80; font-weight: 600;">-${Math.round(member.bonuses.injuryResistance * 100)}%</span>
+                                            </span>
+                                        </div>
+                                    ` : ''}
+                                    ${member.bonuses.fightEarnings ? `
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <span style="font-size: 0.95rem;">💰</span>
+                                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                                Заробіток <span style="color: #4ade80; font-weight: 600;">+${Math.round(member.bonuses.fightEarnings * 100)}%</span>
+                                            </span>
+                                        </div>
+                                    ` : ''}
+                                    ${member.bonuses.speedBonus ? `
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <span style="font-size: 0.95rem;">⚡</span>
+                                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                                Швидкість <span style="color: #4ade80; font-weight: 600;">+${member.bonuses.speedBonus}</span>
+                                            </span>
+                                        </div>
+                                    ` : ''}
+                                    ${member.bonuses.staminaBonus ? `
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <span style="font-size: 0.95rem;">🔋</span>
+                                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                                Витривалість <span style="color: #4ade80; font-weight: 600;">+${member.bonuses.staminaBonus}</span>
+                                            </span>
+                                        </div>
+                                    ` : ''}
+                                    ${member.bonuses.defenseBonus ? `
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <span style="font-size: 0.95rem;">🛡️</span>
+                                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                                                Захист <span style="color: #4ade80; font-weight: 600;">+${member.bonuses.defenseBonus}</span>
+                                            </span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
                             
                             <!-- Hire Button -->
                             <button onclick="hireMember('${member.id}')" 
@@ -4336,6 +4501,34 @@ const BOXER_AVATARS = [
                 }
             ];
             
+            // ✅ ПРАВИЛЬНЕ СОРТУВАННЯ (категорія → приз)
+            const order = ['Базові', 'Вагові', 'Регіональні', 'Елітні'];
+            tournaments.sort((a, b) => {
+                // Визначити категорію
+                const getCat = (t) => {
+                    if (t.name.includes('Новачки') || t.name.includes('Професіонали') || t.name.includes('Чемпіонат')) return 'Базові';
+                    if (t.name.includes('вага')) return 'Вагові';
+                    if (t.name.includes('🇪🇺') || t.name.includes('🇺🇸') || t.name.includes('🌏')) return 'Регіональні';
+                    return 'Елітні';
+                };
+                
+                const catA = getCat(a);
+                const catB = getCat(b);
+                
+                // Спочатку по категорії
+                if (catA !== catB) {
+                    return order.indexOf(catA) - order.indexOf(catB);
+                }
+                
+                // Потім по мінімальному рейтингу
+                if (a.minRating !== b.minRating) {
+                    return a.minRating - b.minRating;
+                }
+                
+                // Потім по призу
+                return a.prize - b.prize;
+            });
+            
             const container = document.getElementById('availableTournaments');
             container.style.display = 'block';
             document.getElementById('tournamentBracket').style.display = 'none';
@@ -4481,6 +4674,7 @@ const BOXER_AVATARS = [
             }
             
             data.gameState.cash -= tournament.entryFee;
+            data.gameState.totalSpent = (data.gameState.totalSpent || 0) + tournament.entryFee; // ✅ ТРЕКІНГ
             const tournamentData = createTournament(fighter, tournament, data);
             data.gameState.tournaments.current = tournamentData;
             data.gameState.tournaments.lastPlayed = Date.now(); // Зберігаємо час
@@ -4783,6 +4977,7 @@ const BOXER_AVATARS = [
             
             if (won) {
                 data.gameState.cash += tournament.prize;
+                data.gameState.totalEarned = (data.gameState.totalEarned || 0) + tournament.prize; // ✅ ТРЕКІНГ
                 data.gameState.tournaments.stats.won++;
                 showToast('🏆 ПЕРЕМОЖЕЦЬ ТУРНІРУ!', `+$${tournament.prize.toLocaleString()}`, 'success');
             } else {
@@ -5430,6 +5625,7 @@ const BOXER_AVATARS = [
             // Apply reward
             if (achievement.reward.type === 'cash') {
                 gameState.cash += achievement.reward.amount;
+                gameState.totalEarned = (gameState.totalEarned || 0) + achievement.reward.amount; // ✅ ТРЕКІНГ
             } else if (achievement.reward.type === 'stars') {
                 gameState.stars += achievement.reward.amount;
             }
@@ -5942,17 +6138,23 @@ const BOXER_AVATARS = [
                 cash: 2000,        // Зменшено з 5000
                 stars: 50,         // Додано стартові зірки
                 totalWins: 0,
+                totalLosses: 0,    // Додаю losses
                 totalTrainings: 0,
                 hardWins: 0,
                 winStreak: 0,
+                maxStreak: 0,      // Рекорд серії
+                knockouts: 0,      // Нокаути
                 dailyStreak: 0,
                 vipUntil: vipEndTime,  // VIP на 3 дні
                 isNewPlayer: true,       // Прапорець нового гравця
                 
+                // 💰 ФІНАНСИ
+                totalEarned: 2000,   // Стартові гроші = зароблені
+                totalSpent: 0,       // Ще нічого не витратив
+                
                 // CAREER MODE DATA
                 ranking: 100,        // Починаємо з останнього місця
                 totalFights: 0,
-                knockouts: 0,
                 titleDefenses: 0,
                 rivalries: [],       // Масив суперників {name, wins, losses, lastFight}
                 pressConferences: [], // Історія прес-конференцій
@@ -7745,6 +7947,7 @@ function getSponsorBonus(fighter) {
             }
             
             gameState.cash -= doctor.cost;
+            gameState.totalSpent = (gameState.totalSpent || 0) + doctor.cost; // ✅ ТРЕКІНГ
             const remainingTime = fighter.injury.healTime - Date.now();
             const reducedTime = remainingTime * (1 - doctor.timeReduction);
             fighter.injury.healTime = Date.now() + reducedTime;
@@ -8190,6 +8393,7 @@ function getSponsorBonus(fighter) {
             
             // Hire
             gameState.cash -= member.hiringCost;
+            gameState.totalSpent = (gameState.totalSpent || 0) + member.hiringCost; // ✅ ТРЕКІНГ
             characterData.team.members[member.type] = { ...member, hiredDate: Date.now() };
             updateTeamExpenses(characterData);
             
@@ -8721,6 +8925,7 @@ function getSponsorBonus(fighter) {
             
             // Deduct cost
             gameState.cash -= finalCost;
+            gameState.totalSpent = (gameState.totalSpent || 0) + finalCost; // ✅ ТРЕКІНГ
             
             // Show discount toast if applicable
             if (teamBonuses.trainingDiscount > 0) {
@@ -10822,6 +11027,7 @@ function getSponsorBonus(fighter) {
                 }
                 
                 gameState.cash += cash;
+                gameState.totalEarned = (gameState.totalEarned || 0) + cash; // ✅ ТРЕКІНГ
                 
                 // 🔊 ЗВУК МОНЕТ!
                 playCoinSound();
@@ -11887,6 +12093,7 @@ function getSponsorBonus(fighter) {
             
             // Deduct money
             gameState.cash -= candidate.price;
+            gameState.totalSpent = (gameState.totalSpent || 0) + candidate.price; // ✅ ТРЕКІНГ
             
             // Initialize candidate as fighter
             candidate.gameData = {
