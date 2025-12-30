@@ -13192,6 +13192,20 @@ function getSponsorBonus(fighter) {
             
             saveGameSync(characterData);
             
+            // 🔔 SCHEDULE PUSH NOTIFICATION
+            const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+            if (userId && isRealTelegram) {
+                fetch('https://boxing-managerbot.vercel.app/api/schedule-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId,
+                        message: `🏋️ <b>Тренування завершено!</b>\n\n${fighter.firstName} покращив ${TRAINING_TYPES[type].name}!\n\nПовертайся в гру!`,
+                        completionTime: endTime
+                    })
+                }).catch(err => console.log('Notification not scheduled:', err));
+            }
+            
             // Show VIP bonus toast if applicable
             if (timeMultiplier < 1) {
                 setTimeout(() => {
