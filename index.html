@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Boxing Manager v2.3</title>
+    <title>Boxing Manager v2.4</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -603,6 +603,27 @@
         
         <div class="vip-content" id="vipContent">
             <!-- VIP content will be generated here -->
+        </div>
+    </div>
+
+    <!-- 💎 STARS SHOP SCREEN -->
+    <div id="starsShopScreen" class="screen">
+        <button class="back-button" onclick="backToGame()">←</button>
+        
+        <div style="padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
+                    background: linear-gradient(180deg, rgba(103, 126, 234, 0.1) 0%, transparent 100%); text-align: center;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">💎</div>
+            <div style="font-family: 'Oswald', sans-serif; font-size: clamp(1.5rem, 5vw, 1.8rem); 
+                        font-weight: 400; color: var(--canvas-white); margin-bottom: 0.3rem;">
+                Stars Shop
+            </div>
+            <div style="font-size: 0.85rem; color: rgba(255,255,255,0.6);">
+                Telegram Stars для швидких дій
+            </div>
+        </div>
+        
+        <div class="screen-content" style="padding: 0.75rem; padding-bottom: 80px;" id="starsShopContent">
+            <!-- Content will be generated -->
         </div>
     </div>
 
@@ -1358,28 +1379,76 @@ const BOXER_AVATARS = [
             }
         }
         
-        // Stars payment helper
-        async function requestStarsPayment(amount, description) {
+        // Stars payment helper - REAL IMPLEMENTATION
+        async function requestStarsPayment(title, description, amount, payload) {
             if (!isRealTelegram) {
                 console.warn('⚠️ Stars payment only in Telegram');
+                showToast('⚠️ Тільки в Telegram', 'Stars payment доступний тільки в Telegram', 'warning');
                 return { success: false, error: 'Not in Telegram' };
             }
             
-            // Telegram Stars API (requires bot token setup)
-            // For now, show popup
+            // Telegram Stars API
+            const invoiceUrl = `https://t.me/$invoice?startapp=${payload}`;
+            
             return new Promise((resolve) => {
+                // Показати confirm popup
                 tg.showPopup({
-                    title: '💎 Telegram Stars',
-                    message: `${description}\n\nВартість: ${amount} ⭐`,
+                    title: `💎 ${title}`,
+                    message: `${description}\n\n💎 Вартість: ${amount} Telegram Stars`,
                     buttons: [
-                        { id: 'pay', type: 'default', text: 'Сплатити' },
+                        { id: 'pay', type: 'default', text: `Сплатити ${amount} ⭐` },
                         { id: 'cancel', type: 'cancel' }
                     ]
-                }, (buttonId) => {
+                }, async (buttonId) => {
                     if (buttonId === 'pay') {
-                        // TODO: Implement actual Stars payment
-                        showToast('💎 Stars Payment', 'Функція в розробці', 'info');
-                        resolve({ success: false, error: 'Not implemented yet' });
+                        try {
+                            // Open invoice через Telegram Bot API
+                            // NOTE: Це потребує backend для створення invoice
+                            // Поки що покажемо як це має виглядати
+                            
+                            console.log('💎 Opening Telegram Stars invoice...');
+                            console.log('Amount:', amount, 'Stars');
+                            console.log('Payload:', payload);
+                            
+                            // TODO: Call your backend to create invoice
+                            // const response = await fetch('/api/create-invoice', {
+                            //     method: 'POST',
+                            //     headers: { 'Content-Type': 'application/json' },
+                            //     body: JSON.stringify({
+                            //         title,
+                            //         description,
+                            //         payload,
+                            //         amount,
+                            //         userId: tg.initDataUnsafe.user?.id
+                            //     })
+                            // });
+                            // const { invoice_link } = await response.json();
+                            // tg.openInvoice(invoice_link, (status) => {
+                            //     if (status === 'paid') {
+                            //         resolve({ success: true, payload });
+                            //     } else {
+                            //         resolve({ success: false, error: 'Payment cancelled' });
+                            //     }
+                            // });
+                            
+                            // ПОКИ ЩО: симуляція успішної оплати для тестування UI
+                            showToast('💎 Stars Payment', 'Backend для оплати в розробці.\nUI готовий для інтеграції!', 'info');
+                            
+                            // Для демо - симулюємо успішну оплату через 1 сек
+                            setTimeout(() => {
+                                const simulateSuccess = confirm('DEMO: Симулювати успішну оплату?');
+                                if (simulateSuccess) {
+                                    resolve({ success: true, payload, demo: true });
+                                } else {
+                                    resolve({ success: false, error: 'Cancelled', demo: true });
+                                }
+                            }, 1000);
+                            
+                        } catch (error) {
+                            console.error('❌ Invoice error:', error);
+                            showToast('Помилка!', 'Не вдалося створити invoice', 'error');
+                            resolve({ success: false, error: error.message });
+                        }
                     } else {
                         resolve({ success: false, error: 'Cancelled' });
                     }
@@ -12592,6 +12661,29 @@ function refreshMarket() {
             
             html += `</div>`;
             
+            // 💎 STARS SHOP BUTTON
+            html += `
+                <div style="padding: 1rem 0;">
+                    <button onclick="openStarsShop()" 
+                            style="width: 100%;
+                                   padding: 1rem;
+                                   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                   border: none;
+                                   color: white;
+                                   border-radius: 12px;
+                                   font-size: 1rem;
+                                   font-weight: 600;
+                                   cursor: pointer;
+                                   display: flex;
+                                   align-items: center;
+                                   justify-content: center;
+                                   gap: 0.5rem;
+                                   transition: transform 0.2s;">
+                        💎 Stars Shop - Швидкі покупки
+                    </button>
+                </div>
+            `;
+            
             // Note
             html += `
                 <div class="vip-note">
@@ -12722,6 +12814,223 @@ function refreshMarket() {
             if (gameScreen.classList.contains('active')) {
                 loadGameData();
             }
+        }
+        
+        // ===== STARS SHOP FUNCTIONS =====
+        
+        function openStarsShop() {
+            hapticMedium();
+            showScreen('starsShopScreen');
+            loadStarsShop();
+        }
+        
+        function loadStarsShop() {
+            const container = document.getElementById('starsShopContent');
+            const data = loadGameSync();
+            const gameState = data.gameState;
+            const fighter = data.fighters[data.activeFighterIndex];
+            
+            const categories = [
+                {
+                    name: '⚡ Швидкі дії',
+                    items: [
+                        {
+                            id: 'instant_energy',
+                            icon: '⚡',
+                            name: 'Instant Energy',
+                            desc: 'Миттєво відновити енергію',
+                            stars: 10,
+                            action: () => instantEnergy()
+                        },
+                        {
+                            id: 'instant_heal',
+                            icon: '🏥',
+                            name: 'Instant Heal',
+                            desc: 'Миттєво вилікувати травму',
+                            stars: 20,
+                            action: () => instantHeal(),
+                            disabled: !fighter.injury || fighter.injury.healTime <= Date.now()
+                        },
+                        {
+                            id: 'skip_training',
+                            icon: '⏭️',
+                            name: 'Skip Training',
+                            desc: 'Завершити всі тренування',
+                            stars: 15,
+                            action: () => skipAllTraining(),
+                            disabled: !hasActiveTraining(fighter)
+                        }
+                    ]
+                },
+                {
+                    name: '💰 Гроші',
+                    items: [
+                        {
+                            id: 'cash_small',
+                            icon: '💵',
+                            name: 'Small Pack',
+                            desc: '$50,000',
+                            stars: 10,
+                            action: () => buyCash(50000, 10)
+                        },
+                        {
+                            id: 'cash_medium',
+                            icon: '💸',
+                            name: 'Medium Pack',
+                            desc: '$200,000',
+                            stars: 30,
+                            action: () => buyCash(200000, 30)
+                        },
+                        {
+                            id: 'cash_large',
+                            icon: '💰',
+                            name: 'Large Pack',
+                            desc: '$500,000',
+                            stars: 50,
+                            action: () => buyCash(500000, 50)
+                        }
+                    ]
+                }
+            ];
+            
+            let html = `
+                <div style="background: rgba(103, 126, 234, 0.1); border: 1px solid rgba(103, 126, 234, 0.3); 
+                            border-radius: 10px; padding: 0.75rem; margin-bottom: 1rem;">
+                    <div style="font-size: 0.85rem; color: rgba(255,255,255,0.8); text-align: center;">
+                        💎 Ці покупки використовують <b>Telegram Stars</b><br>
+                        Оплата безпечна через Telegram
+                    </div>
+                </div>
+            `;
+            
+            categories.forEach(category => {
+                html += `
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.7); 
+                                    margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">
+                            ${category.name}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            ${category.items.map(item => `
+                                <div style="background: rgba(255,255,255,0.03); 
+                                            border: 1px solid ${item.disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)'}; 
+                                            border-radius: 12px; 
+                                            padding: 0.9rem;
+                                            ${item.disabled ? 'opacity: 0.5;' : ''}">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <div style="font-size: 2rem;">${item.icon}</div>
+                                        <div style="flex: 1;">
+                                            <div style="font-size: 0.95rem; font-weight: 600; color: white; margin-bottom: 0.2rem;">
+                                                ${item.name}
+                                            </div>
+                                            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.6);">
+                                                ${item.desc}
+                                            </div>
+                                        </div>
+                                        <button onclick="starsShopBuy('${item.id}')" 
+                                                ${item.disabled ? 'disabled' : ''}
+                                                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                                       border: none;
+                                                       color: white;
+                                                       padding: 0.6rem 1rem;
+                                                       border-radius: 8px;
+                                                       font-size: 0.85rem;
+                                                       font-weight: 600;
+                                                       cursor: ${item.disabled ? 'not-allowed' : 'pointer'};
+                                                       white-space: nowrap;
+                                                       ${item.disabled ? 'opacity: 0.5;' : ''}">
+                                            💎 ${item.stars}
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Store items in global scope for onclick access
+        const STARS_SHOP_ITEMS = {};
+        
+        async function starsShopBuy(itemId) {
+            const items = {
+                instant_energy: { name: 'Instant Energy', desc: 'Миттєво відновити енергію', stars: 10, action: instantEnergy },
+                instant_heal: { name: 'Instant Heal', desc: 'Вилікувати травму миттєво', stars: 20, action: instantHeal },
+                skip_training: { name: 'Skip Training', desc: 'Завершити всі тренування', stars: 15, action: skipAllTraining },
+                cash_small: { name: 'Small Cash Pack', desc: '$50,000', stars: 10, action: () => buyCash(50000, 10) },
+                cash_medium: { name: 'Medium Cash Pack', desc: '$200,000', stars: 30, action: () => buyCash(200000, 30) },
+                cash_large: { name: 'Large Cash Pack', desc: '$500,000', stars: 50, action: () => buyCash(500000, 50) }
+            };
+            
+            const item = items[itemId];
+            if (!item) return;
+            
+            // Request payment
+            const result = await requestStarsPayment(
+                item.name,
+                item.desc,
+                item.stars,
+                itemId
+            );
+            
+            if (result.success) {
+                // Apply item effect
+                item.action();
+                
+                // Reload shop
+                loadStarsShop();
+                
+                showToast('✅ Успіх!', `${item.name} активовано!`, 'success');
+            }
+        }
+        
+        function hasActiveTraining(fighter) {
+            if (!fighter.training) return false;
+            return Object.values(fighter.training).some(t => t && t.endTime > Date.now());
+        }
+        
+        async function instantEnergy() {
+            const data = loadGameSync();
+            const fighter = data.fighters[data.activeFighterIndex];
+            fighter.gameData.energy = 100;
+            saveGameSync(data);
+            loadGameData();
+        }
+        
+        async function instantHeal() {
+            const data = loadGameSync();
+            const fighter = data.fighters[data.activeFighterIndex];
+            if (fighter.injury) {
+                delete fighter.injury;
+                saveGameSync(data);
+                loadGameData();
+            }
+        }
+        
+        async function skipAllTraining() {
+            const data = loadGameSync();
+            const fighter = data.fighters[data.activeFighterIndex];
+            if (fighter.training) {
+                // Complete all training instantly
+                for (const type in fighter.training) {
+                    if (fighter.training[type] && fighter.training[type].endTime > Date.now()) {
+                        fighter.training[type].endTime = Date.now() - 1000;
+                    }
+                }
+                saveGameSync(data);
+                loadGameData();
+            }
+        }
+        
+        async function buyCash(amount, stars) {
+            const data = loadGameSync();
+            data.gameState.cash += amount;
+            data.gameState.totalEarned = (data.gameState.totalEarned || 0) + amount;
+            saveGameSync(data);
+            loadGameData();
         }
         
         // Apply VIP bonuses

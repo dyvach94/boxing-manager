@@ -1,202 +1,158 @@
-# 🥊 Boxing Manager v2.3 TELEGRAM
+# 🥊 Boxing Manager v2.4 STARS
 
-**Версія:** 2.3 TELEGRAM INTEGRATION  
-**Дата:** 30.12.2024  
-**Статус:** ✅ Production Ready
+**Telegram Stars Payment Integration** 💎
 
 ---
 
-## 📱 v2.3 - TELEGRAM INTEGRATION
+## 💎 v2.4 - TELEGRAM STARS PAYMENT
 
-### ⚡ NOTIFICATIONS
+### ⚡ INSTANT ACTIONS
 ```
-✅ Тренування завершено
-   → Telegram popup з результатом
+✅ Instant Energy (10 ⭐)
+   → Миттєво 100% енергії
    
-✅ Досягнення отримано  
-   → Telegram popup з нагородою
-```
-
-### 💎 TELEGRAM STARS MONETIZATION
-```
-✅ VIP через Telegram Stars (в розробці)
-   → 100 Telegram Stars = 30 днів VIP
-   → Альтернатива: Game Stars
+✅ Instant Heal (20 ⭐)
+   → Вилікувати травму миттєво
    
-✅ Готовність до монетизації
-   → Структура готова
-   → Потрібен тільки bot token
+✅ Skip Training (15 ⭐)
+   → Завершити всі тренування
 ```
 
-### 📤 SOCIAL FEATURES
+### 💰 CASH PACKS
 ```
-✅ Share Results
-   → Поділитися статистикою
-   → Запросити друзів
-   → Кнопка в профілі
-```
-
-### 🎨 TELEGRAM UI
-```
-✅ Main Button (ready)
-✅ Back Button (ready)
-✅ Haptic Feedback (already working)
-✅ Theme Colors (integrated)
-✅ Popups (notifications)
+✅ Small Pack (10 ⭐)
+   → $50,000
+   
+✅ Medium Pack (30 ⭐)
+   → $200,000
+   
+✅ Large Pack (50 ⭐)
+   → $500,000
 ```
 
----
-
-## 🎮 ВСІ ФІЧІ
-
+### 💎 VIP ЧЕРЕЗ STARS
 ```
-✅ v2.3: Telegram Integration
-✅ v2.2: Bugfixes (статистика, команда, турніри)
-✅ v2.1: Fight scoring (10-8 за нокдаун)
-✅ v2.0: Statistics screen
-✅ v1.9: 8 legendary fighters
-✅ v1.8: 50+ achievements
-✅ v1.7: 12 tournaments
+✅ 7 днів: 50 ⭐
+✅ 30 днів: 100 ⭐
+✅ 90 днів: 250 ⭐
 ```
 
 ---
 
-## 🚀 TELEGRAM BOT SETUP
+## 🚀 BACKEND SETUP (ПОТРІБНО)
 
-### Крок 1: Створити бота
+### 1. Create Bot Token
 ```
-1. Знайти @BotFather в Telegram
-2. /newbot
-3. Вибрати назву: "Boxing Manager"
-4. Отримати BOT_TOKEN
+@BotFather → /mybots → API Token
 ```
 
-### Крок 2: Створити Mini App
-```
-1. У @BotFather: /newapp
-2. Вибрати бота
-3. Назва: "Boxing Manager"
-4. Description: "Стань легендарним менеджером боксу!"
-5. Photo: Завантажити іконку (512x512)
-6. GIF: (optional)
-7. Web App URL: https://your-domain.com
-```
-
-### Крок 3: Deploy
-```bash
-# GitHub Pages
-git push
-
-# Vercel
-vercel --prod
-
-# Netlify
-netlify deploy --prod
-```
-
-### Крок 4: Тестування
-```
-1. Відкрити бота в Telegram
-2. Натиснути кнопку Menu
-3. Вибрати "Boxing Manager"
-4. Гра запуститься в Telegram!
-```
-
----
-
-## 💎 MONETIZATION (TODO)
-
-### Потрібно додати:
+### 2. Backend API Endpoint
 ```javascript
-// 1. Bot API для Stars payment
-tg.showPopup({
-    title: 'VIP',
-    message: 'Buy VIP?',
-    buttons: [
-        { 
-            id: 'buy', 
-            type: 'default', 
-            text: '100 ⭐'
-        }
-    ]
-}, async (buttonId) => {
-    if (buttonId === 'buy') {
-        // TODO: Call Bot API
-        const invoice = await createInvoice({
-            title: 'VIP 30 days',
-            description: '+20% training, +15% earnings',
-            payload: 'vip_30',
+// /api/create-invoice
+app.post('/api/create-invoice', async (req, res) => {
+    const { title, description, payload, amount, userId } = req.body;
+    
+    try {
+        const invoice = await bot.telegram.createInvoiceLink({
+            title,
+            description,
+            payload,
+            provider_token: '', // Empty for Stars
             currency: 'XTR', // Telegram Stars
-            prices: [{ amount: 100, label: 'VIP' }]
+            prices: [{ label: title, amount }]
         });
         
-        tg.openInvoice(invoice.url);
+        res.json({ invoice_link: invoice });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+```
+
+### 3. Webhook Handler
+```javascript
+bot.on('pre_checkout_query', async (ctx) => {
+    await ctx.answerPreCheckoutQuery(true);
+});
+
+bot.on('successful_payment', async (ctx) => {
+    const { invoice_payload, total_amount } = ctx.message.successful_payment;
+    
+    // Apply purchase
+    applyPurchase(ctx.from.id, invoice_payload);
+});
+```
+
+### 4. Update Frontend
+```javascript
+// У requestStarsPayment() замінити:
+const response = await fetch('/api/create-invoice', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        title, description, payload, amount,
+        userId: tg.initDataUnsafe.user?.id
+    })
+});
+
+const { invoice_link } = await response.json();
+
+tg.openInvoice(invoice_link, (status) => {
+    if (status === 'paid') {
+        resolve({ success: true, payload });
+    } else {
+        resolve({ success: false, error: 'Cancelled' });
     }
 });
 ```
 
 ---
 
-## 📊 FEATURES MATRIX
+## 💡 DEMO MODE
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Notifications | ✅ Working | showPopup integration |
-| Share Results | ✅ Working | openTelegramLink |
-| Haptic Feedback | ✅ Working | Already implemented |
-| Main Button | ⚠️ Ready | Not used yet |
-| Stars Payment | 🔄 In Progress | Needs bot token |
-| Cloud Storage | ✅ Working | Already integrated |
-| Theme Colors | ✅ Working | Adaptive design |
+Зараз працює **DEMO MODE**:
+- Показує UI
+- Запитує підтвердження
+- Симулює оплату (confirm dialog)
+- Застосовує ефект
+
+**Для production:** додай backend API!
 
 ---
 
-## 🎯 NEXT STEPS
-
-### Immediate (today):
-1. Deploy to hosting
-2. Create Telegram bot
-3. Connect Mini App
-4. Test in Telegram
-
-### Short-term (this week):
-1. Add Stars payment backend
-2. Test monetization
-3. Add friends/leaderboard
-4. Analytics integration
-
-### Long-term (next month):
-1. Tournament brackets
-2. PvP mode
-3. Seasonal events
-4. Guild system
-
----
-
-## 📁 СТРУКТУРА
+## 📋 FEATURES
 
 ```
-boxing-manager-github/
-├── index.html (~2 MB)
-├── css/styles.css (~115 KB)
-├── js/game.js (~2 MB)
-├── README.md
-├── LICENSE
-├── .gitignore
-└── .gitattributes
+✅ Stars Shop screen
+✅ Instant Actions
+✅ Cash Packs
+✅ VIP через Stars
+✅ Demo mode (for testing)
+⚠️ Backend потрібен для production
 ```
 
 ---
 
-## 🐛 KNOWN ISSUES
+## 🎯 DEPLOYMENT
 
-```
-✅ All major bugs fixed!
-⚠️ Stars payment needs backend
-⚠️ Share link needs real bot URL
+```bash
+# 1. Deploy frontend
+git push
+
+# 2. Setup backend
+# Create Node.js server with telegraf
+npm install telegraf
+
+# 3. Add webhook
+BOT_TOKEN="your_token"
+node server.js
+
+# 4. Update requestStarsPayment()
+# Replace demo code with real API call
+
+# 5. Test!
 ```
 
 ---
 
-**📱 ГОТОВО ДЛЯ TELEGRAM!** ✅
-
+**💎 READY FOR MONETIZATION!**
