@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Boxing Manager v2.2</title>
+    <title>Boxing Manager v2.3</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -322,6 +322,27 @@
                         <div class="manager-stat-value">Переглянути</div>
                     </div>
                 </div>
+            </div>
+            
+            <!-- SHARE BUTTON -->
+            <div style="padding: 0 1rem; margin-top: 0.75rem;">
+                <button onclick="shareResults()" style="
+                    width: 100%;
+                    padding: 0.75rem;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    border: none;
+                    color: white;
+                    border-radius: 10px;
+                    font-size: 0.95rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                    transition: transform 0.2s;">
+                    📤 Поділитися результатами
+                </button>
             </div>
             
             <!-- EMERGENCY RESET BUTTON -->
@@ -1313,6 +1334,73 @@ const BOXER_AVATARS = [
                 hash = hash & hash; // Convert to 32bit integer
             }
             return hash.toString();
+        }
+        
+        // ===== TELEGRAM INTEGRATION HELPERS =====
+        
+        // Notification helper
+        function sendTelegramNotification(title, message) {
+            if (isRealTelegram && tg.showPopup) {
+                tg.showPopup({
+                    title: title,
+                    message: message,
+                    buttons: [{ type: 'ok' }]
+                });
+                console.log('📱 Telegram notification sent:', title);
+            }
+        }
+        
+        // Share helper
+        function shareTelegramMessage(text, url) {
+            if (isRealTelegram && tg.openTelegramLink) {
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+                tg.openTelegramLink(shareUrl);
+            }
+        }
+        
+        // Stars payment helper
+        async function requestStarsPayment(amount, description) {
+            if (!isRealTelegram) {
+                console.warn('⚠️ Stars payment only in Telegram');
+                return { success: false, error: 'Not in Telegram' };
+            }
+            
+            // Telegram Stars API (requires bot token setup)
+            // For now, show popup
+            return new Promise((resolve) => {
+                tg.showPopup({
+                    title: '💎 Telegram Stars',
+                    message: `${description}\n\nВартість: ${amount} ⭐`,
+                    buttons: [
+                        { id: 'pay', type: 'default', text: 'Сплатити' },
+                        { id: 'cancel', type: 'cancel' }
+                    ]
+                }, (buttonId) => {
+                    if (buttonId === 'pay') {
+                        // TODO: Implement actual Stars payment
+                        showToast('💎 Stars Payment', 'Функція в розробці', 'info');
+                        resolve({ success: false, error: 'Not implemented yet' });
+                    } else {
+                        resolve({ success: false, error: 'Cancelled' });
+                    }
+                });
+            });
+        }
+        
+        // Main Button helper
+        function setupMainButton(text, onClick) {
+            if (isRealTelegram && tg.MainButton) {
+                tg.MainButton.setText(text);
+                tg.MainButton.show();
+                tg.MainButton.onClick(onClick);
+                console.log('📱 Main button setup:', text);
+            }
+        }
+        
+        function hideMainButton() {
+            if (isRealTelegram && tg.MainButton) {
+                tg.MainButton.hide();
+            }
         }
         
         function shouldSave(characterData) {
@@ -5643,6 +5731,14 @@ const BOXER_AVATARS = [
             
             showToast('🎁 Нагороду отримано!', `${achievement.icon} ${rewardText}`, 'success');
             
+            // 📱 TELEGRAM NOTIFICATION
+            if (isRealTelegram) {
+                sendTelegramNotification(
+                    '🏆 Досягнення отримано!',
+                    `${achievement.name}\nНагорода: ${rewardText}`
+                );
+            }
+            
             // Reload screen
             setTimeout(() => {
                 loadAchievements();
@@ -9107,6 +9203,14 @@ function getSponsorBonus(fighter) {
             
             showToast('🎉 Тренування завершено!', toastMessage, 'success');
             
+            // 📱 TELEGRAM NOTIFICATION
+            if (isRealTelegram) {
+                sendTelegramNotification(
+                    '🎉 Тренування завершено!',
+                    `${fighter.firstName} завершив ${TRAINING_TYPES[type].name}\n${statKey} +${reward}`
+                );
+            }
+            
             // ✨ АНІМАЦІЯ ЗБІЛЬШЕННЯ СТАТУ!
             setTimeout(() => {
                 const statElements = document.querySelectorAll('.fighter-stat-value');
@@ -12293,6 +12397,38 @@ function refreshMarket() {
         }
         
         // ===== EMERGENCY RESET FUNCTION =====
+        // ===== SHARE RESULTS =====
+        function shareResults() {
+            const data = loadGameSync();
+            if (!data) return;
+            
+            const fighter = data.fighters[data.activeFighterIndex];
+            const wins = fighter.gameData?.wins || 0;
+            const losses = fighter.gameData?.losses || 0;
+            const rating = fighter.gameData?.rating || 0;
+            const overall = fighter.overall || 0;
+            
+            const text = `🥊 Мій боєць у Boxing Manager!\n\n` +
+                `${fighter.firstName} "${fighter.nickname}" ${fighter.lastName}\n` +
+                `📊 Рекорд: ${wins}-${losses}\n` +
+                `⭐ Рейтинг: ${rating}\n` +
+                `💪 Оверол: ${overall}\n\n` +
+                `Грай зі мною!`;
+            
+            if (isRealTelegram && tg.openTelegramLink) {
+                const botLink = 'https://t.me/your_bot'; // TODO: Replace with real bot link
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent(text)}`;
+                tg.openTelegramLink(shareUrl);
+            } else {
+                // Fallback - copy to clipboard
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('📋 Скопійовано!', 'Текст скопійовано в буфер обміну', 'success');
+                }).catch(() => {
+                    showToast('ℹ️ Share', text, 'info');
+                });
+            }
+        }
+        
         async function emergencyReset() {
             const confirmed = confirm(
                 '⚠️ УВАГА! ПОВНЕ СКИДАННЯ!\n\n' +
@@ -12476,6 +12612,33 @@ function refreshMarket() {
             const characterData = JSON.parse(localStorage.getItem('boxingManager_character'));
             const gameState = characterData.gameState;
             
+            // 📱 TELEGRAM STARS PAYMENT
+            if (isRealTelegram && days === 30) {
+                // Спробувати оплату через Telegram Stars
+                tg.showPopup({
+                    title: '💎 VIP Підписка',
+                    message: `Хочеш активувати VIP на 30 днів?\n\n🏋️ +20% тренування\n💵 +15% заробіток\n⏱️ -10% час\n\n💎 Оплата: 100 Telegram Stars`,
+                    buttons: [
+                        { id: 'telegram_stars', type: 'default', text: '💎 Telegram Stars (100 ⭐)' },
+                        { id: 'game_stars', type: 'default', text: `⭐ Game Stars (${stars} ⭐)` },
+                        { id: 'cancel', type: 'cancel' }
+                    ]
+                }, (buttonId) => {
+                    if (buttonId === 'telegram_stars') {
+                        // TODO: Real Telegram Stars payment
+                        showToast('💎 Telegram Stars', 'Функція в розробці.\nПоки що використовуй Game Stars!', 'info');
+                    } else if (buttonId === 'game_stars') {
+                        completeBuyVIP(characterData, gameState, days, stars);
+                    }
+                });
+                return;
+            }
+            
+            // Звичайна оплата Game Stars
+            completeBuyVIP(characterData, gameState, days, stars);
+        }
+        
+        function completeBuyVIP(characterData, gameState, days, stars) {
             // Check if enough stars
             if (gameState.stars < stars) {
                 showToast('Недостатньо Stars!', `Потрібно: ⭐ ${stars}\nУ тебе: ⭐ ${gameState.stars}`, 'error');
