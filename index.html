@@ -6019,6 +6019,94 @@ const BOXER_AVATARS = [
         
         // ===== SAVE/LOAD SYSTEM =====
         
+        // ☁️ TELEGRAM CLOUD STORAGE
+        async function saveToTelegramCloud(data) {
+            if (!window.Telegram?.WebApp?.CloudStorage) {
+                return false;
+            }
+            
+            try {
+                const cloudStorage = window.Telegram.WebApp.CloudStorage;
+                
+                // Save main data in chunks (CloudStorage has 64KB limit per key)
+                const gameStateStr = JSON.stringify(data.gameState);
+                const fightersStr = JSON.stringify(data.fighters);
+                const activeIndexStr = String(data.activeFighterIndex);
+                
+                // Save each chunk
+                await new Promise((resolve, reject) => {
+                    cloudStorage.setItem('gameState', gameStateStr, (error) => {
+                        if (error) reject(error);
+                        else resolve();
+                    });
+                });
+                
+                await new Promise((resolve, reject) => {
+                    cloudStorage.setItem('fighters', fightersStr, (error) => {
+                        if (error) reject(error);
+                        else resolve();
+                    });
+                });
+                
+                await new Promise((resolve, reject) => {
+                    cloudStorage.setItem('activeFighterIndex', activeIndexStr, (error) => {
+                        if (error) reject(error);
+                        else resolve();
+                    });
+                });
+                
+                console.log('☁️ Saved to Telegram Cloud');
+                return true;
+            } catch (error) {
+                console.error('Cloud save error:', error);
+                return false;
+            }
+        }
+        
+        async function loadFromTelegramCloud() {
+            if (!window.Telegram?.WebApp?.CloudStorage) {
+                return null;
+            }
+            
+            try {
+                const cloudStorage = window.Telegram.WebApp.CloudStorage;
+                
+                // Load all chunks
+                const gameStateStr = await new Promise((resolve) => {
+                    cloudStorage.getItem('gameState', (error, value) => {
+                        resolve(value || null);
+                    });
+                });
+                
+                const fightersStr = await new Promise((resolve) => {
+                    cloudStorage.getItem('fighters', (error, value) => {
+                        resolve(value || null);
+                    });
+                });
+                
+                const activeIndexStr = await new Promise((resolve) => {
+                    cloudStorage.getItem('activeFighterIndex', (error, value) => {
+                        resolve(value || '0');
+                    });
+                });
+                
+                if (gameStateStr && fightersStr) {
+                    const data = {
+                        gameState: JSON.parse(gameStateStr),
+                        fighters: JSON.parse(fightersStr),
+                        activeFighterIndex: parseInt(activeIndexStr)
+                    };
+                    console.log('☁️ Loaded from Telegram Cloud');
+                    return data;
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('Cloud load error:', error);
+                return null;
+            }
+        }
+        
         function saveGameSync(characterData, immediate = false) {
             // Перевірка чи дані змінились
             if (!immediate && !shouldSave(characterData)) {
@@ -6067,6 +6155,13 @@ const BOXER_AVATARS = [
                 console.error('❌ CRITICAL: Save failed!', e);
                 // НЕ показуємо toast - просто логуємо помилку
                 return;
+            }
+            
+            // ☁️ CLOUD STORAGE: Save to Telegram Cloud
+            if (isRealTelegram && window.Telegram?.WebApp?.CloudStorage) {
+                saveToTelegramCloud(characterData).catch(err => {
+                    console.log('Cloud save skipped:', err);
+                });
             }
             
             if (immediate) {
@@ -6196,7 +6291,7 @@ const BOXER_AVATARS = [
         
         // ===== END VALIDATION & RECOVERY =====
         
-        // OPTIMIZED: Load with cache
+        // OPTIMIZED: Load with cache + Cloud Storage
         function loadGameSync() {
             const now = Date.now();
             
@@ -6204,6 +6299,22 @@ const BOXER_AVATARS = [
             if (cachedCharacterData && (now - cacheTimestamp) < CACHE_TTL) {
                 console.log('⚡ Loading from cache');
                 return cachedCharacterData;
+            }
+            
+            // ☁️ Try load from Cloud first (async, so we'll load localStorage first then sync)
+            if (isRealTelegram && window.Telegram?.WebApp?.CloudStorage) {
+                loadFromTelegramCloud().then(cloudData => {
+                    if (cloudData) {
+                        // Save to localStorage as backup
+                        localStorage.setItem('boxingManager_character', JSON.stringify(cloudData));
+                        // Update cache
+                        cachedCharacterData = cloudData;
+                        cacheTimestamp = Date.now();
+                        console.log('☁️ Synced from Cloud to localStorage');
+                    }
+                }).catch(err => {
+                    console.log('Cloud load skipped:', err);
+                });
             }
             
             try {
@@ -13191,20 +13302,6 @@ function getSponsorBonus(fighter) {
             };
             
             saveGameSync(characterData);
-            
-            // 🔔 SCHEDULE PUSH NOTIFICATION
-            const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-            if (userId && isRealTelegram) {
-                fetch('https://boxing-managerbot.vercel.app/api/schedule-notification', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId,
-                        message: `🏋️ <b>Тренування завершено!</b>\n\n${fighter.firstName} покращив ${TRAINING_TYPES[type].name}!\n\nПовертайся в гру!`,
-                        completionTime: endTime
-                    })
-                }).catch(err => console.log('Notification not scheduled:', err));
-            }
             
             // Show VIP bonus toast if applicable
             if (timeMultiplier < 1) {
