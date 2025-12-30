@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Boxing Manager v2.0</title>
+    <title>Boxing Manager v2.1 FINAL</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -17,7 +17,7 @@
             </div>
             <div class="loading-text">ЗАВАНТАЖЕННЯ...</div>
             <div style="position: absolute; bottom: 20px; width: 100%; text-align: center; color: var(--gold); font-size: 0.8rem; opacity: 0.6;">
-                2.0 STATS - Statistics Screen
+                2.1 FIXED - Fight Scoring Fixed
             </div>
         </div>
     </div>
@@ -9751,43 +9751,51 @@ function getSponsorBonus(fighter) {
         // ===== JUDGES SCORING SYSTEM =====
         // Функція підрахунку очок за раунд (викликається в кінці кожного раунду)
         function scoreRound(roundNumber, pHits, oHits, pKD, oKD, judge1, judge2, judge3, rounds, log) {
+            // ✅ ПРАВИЛЬНА СИСТЕМА 10-POINT MUST
             let playerScore = 10;
             let opponentScore = 10;
             
-            // 1. Базовий рахунок: хто більше вдарив
-            if (pHits > oHits * 1.5) {
-                // Гравець значно домінував
+            // 1. Визначити переможця раунду по ударах
+            if (pHits > oHits * 1.2) {
+                // Гравець домінував
                 opponentScore = 9;
-            } else if (oHits > pHits * 1.5) {
-                // Опонент значно домінував
+            } else if (oHits > pHits * 1.2) {
+                // Опонент домінував
                 playerScore = 9;
             }
             // Інакше 10-10 (рівний раунд)
             
-            // 2. Нокдауни віднімають очки (кожен нокдаун = -1 очко)
+            // 2. НОКДАУНИ = мінус 1 очко (важливо!)
             if (pKD > 0) {
-                opponentScore -= pKD;
+                opponentScore -= pKD; // Кожен нокдаун -1
+                playerScore = 10; // Переможець завжди 10
             }
             if (oKD > 0) {
                 playerScore -= oKD;
+                opponentScore = 10; // Переможець завжди 10
             }
             
-            // Мінімум 6 очок (рідко але можливо при кількох нокдаунах)
+            // Мінімум 6 очок (правила боксу)
             playerScore = Math.max(6, playerScore);
             opponentScore = Math.max(6, opponentScore);
             
-            // 3. Додати до загальних рахунків кожного судді (з невеликою варіацією)
-            // Суддя 1 (консервативний)
+            // 3. Додати до загальних рахунків кожного судді
             judge1.player += playerScore;
             judge1.opponent += opponentScore;
             
-            // Суддя 2 (нейтральний, може бачити по-іншому)
-            const variation2 = Math.random() < 0.15 ? (Math.random() < 0.5 ? 1 : -1) : 0;
+            // Суддя 2 (може бачити по-іншому, але НЕ при нокдаунах)
+            let variation2 = 0;
+            if (pKD === 0 && oKD === 0) {
+                variation2 = Math.random() < 0.15 ? (Math.random() < 0.5 ? 1 : -1) : 0;
+            }
             judge2.player += Math.max(6, playerScore + variation2);
             judge2.opponent += Math.max(6, opponentScore - variation2);
             
-            // Суддя 3 (незалежний, може бачити по-іншому)
-            const variation3 = Math.random() < 0.15 ? (Math.random() < 0.5 ? 1 : -1) : 0;
+            // Суддя 3 (може бачити по-іншому, але НЕ при нокдаунах)
+            let variation3 = 0;
+            if (pKD === 0 && oKD === 0) {
+                variation3 = Math.random() < 0.15 ? (Math.random() < 0.5 ? 1 : -1) : 0;
+            }
             judge3.player += Math.max(6, playerScore + variation3);
             judge3.opponent += Math.max(6, opponentScore - variation3);
             
