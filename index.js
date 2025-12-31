@@ -1,6 +1,7 @@
 const { Telegraf } = require('telegraf');
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
 require('dotenv').config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN || '8427853863:AAG7VC0jIJWf0-26pRqO9DSNyA5BLMDXsYc');
@@ -8,34 +9,55 @@ const app = express();
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'] }));
 app.options('*', cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 const payments = new Map();
 const scheduledNotifications = new Map();
 
-// ===== NOTIFICATION SYSTEM =====
+// ===== MONGODB =====
+const UserSchema = new mongoose.Schema({
+    telegramId: { type: String, unique: true, required: true },
+    username: String,
+    firstName: String,
+    lastName: String,
+    gameState: Object,
+    fighters: Array,
+    activeFighterIndex: Number,
+    isBanned: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now },
+    lastActive: { type: Date, default: Date.now },
+    totalPurchases: { type: Number, default: 0 },
+    lifetimeValue: { type: Number, default: 0 }
+});
+
+const User = mongoose.model('User', UserSchema);
+
+// Connect to MongoDB
+if (process.env.MONGODB_URI) {
+    mongoose.connect(process.env.MONGODB_URI)
+        .then(() => console.log('📊 MongoDB connected'))
+        .catch(err => console.log('MongoDB error:', err));
+}
+
+// ===== NOTIFICATIONS =====
 async function sendNotification(userId, message) {
     try {
         await bot.telegram.sendMessage(userId, message, {
             parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[
-                    {
-                        text: '🎮 Відкрити гру',
-                        web_app: { url: 'https://dyvach94.github.io/boxing-manager/' }
-                    }
+                    { text: '🎮 Відкрити гру', web_app: { url: 'https://dyvach94.github.io/boxing-manager/' } }
                 ]]
             }
         });
-        console.log('📱 Notification sent to:', userId);
+        console.log('📱 Notification sent:', userId);
         return true;
     } catch (error) {
-        console.error('❌ Notification error:', error);
+        console.error('Notification error:', error);
         return false;
     }
 }
 
-// Check every minute
 setInterval(() => {
     const now = Date.now();
     scheduledNotifications.forEach((notification, id) => {
@@ -48,9 +70,63 @@ setInterval(() => {
 
 // ===== API =====
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', time: Date.now(), notifications: scheduledNotifications.size });
+    res.json({ 
+        status: 'ok', 
+        time: Date.now(),
+        notifications: scheduledNotifications.size,
+        db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    });
 });
 
+// Save user data
+app.post('/api/save-user', async (req, res) => {
+    try {
+        const { telegramId, username, firstName, lastName, gameState, fighters, activeFighterIndex } = req.body;
+        
+        await User.findOneAndUpdate(
+            { telegramId },
+            {
+                telegramId,
+                username,
+                firstName,
+                lastName,
+                gameState,
+                fighters,
+                activeFighterIndex,
+                lastActive: new Date()
+            },
+            { upsert: true, new: true }
+        );
+        
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Load user data
+app.get('/api/load-user/:telegramId', async (req, res) => {
+    try {
+        const user = await User.findOne({ telegramId: req.params.telegramId });
+        
+        if (!user) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
+        res.json({
+            success: true,
+            data: {
+                gameState: user.gameState,
+                fighters: user.fighters,
+                activeFighterIndex: user.activeFighterIndex
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Schedule notification
 app.post('/api/schedule-notification', async (req, res) => {
     try {
         const { userId, message, completionTime } = req.body;
@@ -62,6 +138,7 @@ app.post('/api/schedule-notification', async (req, res) => {
     }
 });
 
+// Create invoice
 app.post('/api/create-invoice', async (req, res) => {
     try {
         const { title, description, payload, amount, userId } = req.body;
@@ -83,13 +160,77 @@ app.post('/api/create-invoice', async (req, res) => {
     }
 });
 
+// ===== ADMIN ENDPOINTS =====
+const ADMIN_IDS = (process.env.ADMIN_IDS || '').split(',');
+
+function isAdmin(req, res, next) {
+    const adminId = req.body.adminId || req.query.adminId;
+    if (!ADMIN_IDS.includes(adminId)) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+    next();
+}
+
+app.post('/admin/stats', isAdmin, async (req, res) => {
+    const totalUsers = await User.countDocuments();
+    const activeToday = await User.countDocuments({
+        lastActive: { $gte: new Date(Date.now() - 24*60*60*1000) }
+    });
+    const totalRevenue = await User.aggregate([
+        { $group: { _id: null, total: { $sum: '$lifetimeValue' } } }
+    ]);
+    
+    res.json({
+        totalUsers,
+        activeToday,
+        totalRevenue: totalRevenue[0]?.total || 0
+    });
+});
+
+app.post('/admin/users', isAdmin, async (req, res) => {
+    const users = await User.find().sort({ lastActive: -1 }).limit(100);
+    res.json(users);
+});
+
+app.post('/admin/ban-user', isAdmin, async (req, res) => {
+    const { userId } = req.body;
+    await User.findOneAndUpdate({ telegramId: userId }, { isBanned: true });
+    res.json({ success: true });
+});
+
+app.post('/admin/broadcast', isAdmin, async (req, res) => {
+    const { message } = req.body;
+    const users = await User.find({ isBanned: false });
+    let sent = 0;
+    for (const user of users) {
+        try {
+            await sendNotification(user.telegramId, message);
+            sent++;
+        } catch (error) {}
+    }
+    res.json({ success: true, sent });
+});
+
 // ===== BOT =====
 bot.on('pre_checkout_query', async (ctx) => {
     await ctx.answerPreCheckoutQuery(true);
 });
 
 bot.on('successful_payment', async (ctx) => {
-    const { total_amount } = ctx.message.successful_payment;
+    const { invoice_payload, total_amount } = ctx.message.successful_payment;
+    const data = JSON.parse(invoice_payload);
+    
+    // Update user LTV
+    await User.findOneAndUpdate(
+        { telegramId: String(data.userId) },
+        { 
+            $inc: { 
+                totalPurchases: 1,
+                lifetimeValue: total_amount * 0.0015 // Stars to USD approximate
+            }
+        }
+    );
+    
     await ctx.reply(`✅ Оплату прийнято!\n\nСума: ${total_amount} ⭐`, {
         reply_markup: {
             inline_keyboard: [[
@@ -99,7 +240,7 @@ bot.on('successful_payment', async (ctx) => {
     });
 });
 
-bot.catch((err) => console.error('❌ Bot error:', err));
+bot.catch((err) => console.error('Bot error:', err));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Port ${PORT}`));
