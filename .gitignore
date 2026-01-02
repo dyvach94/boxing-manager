@@ -1,6 +1,0 @@
-.DS_Store
-.vscode/
-*.swp
-*.log
-node_modules/
-.env
