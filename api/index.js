@@ -2,19 +2,17 @@ const { Telegraf } = require('telegraf');
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-require('dotenv').config();
 
-const bot = new Telegraf(process.env.BOT_TOKEN || '8427853863:AAG7VC0jIJWf0-26pRqO9DSNyA5BLMDXsYc');
+const bot = new Telegraf(process.env.BOT_TOKEN);
 const app = express();
 
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'] }));
-app.options('*', cors());
+app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
 
 const payments = new Map();
 const scheduledNotifications = new Map();
 
-// ===== MONGODB =====
+// MongoDB Schema
 const UserSchema = new mongoose.Schema({
     telegramId: { type: String, unique: true, required: true },
     username: String,
@@ -32,14 +30,14 @@ const UserSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', UserSchema);
 
-// Connect to MongoDB
+// MongoDB Connection
 if (process.env.MONGODB_URI) {
     mongoose.connect(process.env.MONGODB_URI)
         .then(() => console.log('✅ MongoDB connected'))
-        .catch(err => console.error('❌ MongoDB error:', err));
+        .catch(err => console.error('❌ MongoDB:', err.message));
 }
 
-// ===== NOTIFICATIONS =====
+// Notification sender
 async function sendNotification(userId, message) {
     try {
         await bot.telegram.sendMessage(userId, message, {
@@ -52,11 +50,11 @@ async function sendNotification(userId, message) {
         });
         return true;
     } catch (error) {
-        console.error('Notification error:', error);
         return false;
     }
 }
 
+// Notification scheduler
 setInterval(() => {
     const now = Date.now();
     scheduledNotifications.forEach((notification, id) => {
@@ -67,7 +65,9 @@ setInterval(() => {
     });
 }, 60000);
 
-// ===== API =====
+// Routes
+app.get('/', (req, res) => res.json({ message: 'Boxing Manager API' }));
+
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'ok', 
@@ -94,7 +94,7 @@ app.post('/api/save-user', async (req, res) => {
 app.get('/api/load-user/:telegramId', async (req, res) => {
     try {
         const user = await User.findOne({ telegramId: req.params.telegramId });
-        if (!user) return res.json({ success: false, message: 'User not found' });
+        if (!user) return res.json({ success: false });
         res.json({ success: true, data: { gameState: user.gameState, fighters: user.fighters, activeFighterIndex: user.activeFighterIndex } });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -115,7 +115,7 @@ app.post('/api/schedule-notification', async (req, res) => {
 app.post('/api/create-invoice', async (req, res) => {
     try {
         const { title, description, payload, amount, userId } = req.body;
-        if (!title || !amount || !payload) return res.status(400).json({ success: false, error: 'Missing fields' });
+        if (!title || !amount || !payload) return res.status(400).json({ error: 'Missing fields' });
         const invoice = await bot.telegram.createInvoiceLink({
             title, description: description || title,
             payload: JSON.stringify({ type: payload, userId, time: Date.now() }),
@@ -124,17 +124,17 @@ app.post('/api/create-invoice', async (req, res) => {
         payments.set(payload, { userId, amount, title, created: Date.now() });
         res.json({ success: true, invoice_link: invoice });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ error: error.message });
     }
 });
 
-// ===== ADMIN =====
+// Admin
 const ADMIN_IDS = (process.env.ADMIN_IDS || '').split(',');
-function isAdmin(req, res, next) {
+const isAdmin = (req, res, next) => {
     const adminId = req.body.adminId || req.query.adminId;
     if (!ADMIN_IDS.includes(adminId)) return res.status(403).json({ error: 'Not authorized' });
     next();
-}
+};
 
 app.post('/admin/stats', isAdmin, async (req, res) => {
     const totalUsers = await User.countDocuments();
@@ -162,7 +162,7 @@ app.post('/admin/broadcast', isAdmin, async (req, res) => {
     res.json({ success: true, sent });
 });
 
-// ===== BOT =====
+// Bot handlers
 bot.on('pre_checkout_query', async (ctx) => await ctx.answerPreCheckoutQuery(true));
 bot.on('successful_payment', async (ctx) => {
     const { invoice_payload, total_amount } = ctx.message.successful_payment;
@@ -173,12 +173,7 @@ bot.on('successful_payment', async (ctx) => {
     });
 });
 
-bot.catch((err) => console.error('Bot error:', err));
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Port ${PORT}`));
-bot.launch().then(() => console.log('🤖 Bot OK'));
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+bot.catch((err) => console.error('Bot:', err.message));
+bot.launch().then(() => console.log('🤖 Bot started'));
 
 module.exports = app;
